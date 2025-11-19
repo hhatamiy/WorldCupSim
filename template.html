@@ -1,0 +1,459 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>World Cup Bracket Prediction</title>
+    <style>
+        body {
+            font-family: "Inter", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a1a2a, #003b5c);
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            min-height: 100vh;
+        }
+        header {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 25px;
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .match {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+        }
+        button {
+            margin-top: 15px;
+            width: 200px;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #results {
+            margin-top: 35px;
+            padding: 20px;
+            background: rgba(0, 255, 120, 0.18);
+        }
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 15px 0;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .nav-item {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 17px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+        .nav-item:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+        }
+        .nav-item.active {
+            background: rgba(0, 200, 255, 0.4);
+            box-shadow: 0 0 10px rgba(0,200,255,0.5);
+        }
+        .tab-content {
+            width: 100%;
+        }
+        .tab-pane {
+            display: none;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .tab-pane.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Login Modal CSS */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .modal-content {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 350px;
+            color: white;
+            position: relative;
+            text-align: center;
+        }
+
+        .modal .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+        }
+
+        .modal button {
+            padding: 12px 20px;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal .close:hover {
+            color: #00c6ff;
+        }
+    </style>
+</head>
+<body>
+
+<header>World Cup Bracket Prediction</header>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</div>
+<div id="mainContent" style="display:none;">
+    <nav class="navbar">
+        <button class="nav-item active" data-tab="tab-groups">Group Stage</button>
+        <button class="nav-item" data-tab="tab-bracket">Bracket</button>
+        <button class="nav-item" data-tab="tab-stats">Stats</button>
+        <button class="nav-item" data-tab="tab-teams">Teams</button>
+        <button class="nav-item" data-tab="tab-about">About</button>
+    </nav>
+
+    <div class="tab-content">
+        <div id="tab-groups" class="tab-pane active">
+            <div class="container">
+                <h2>Group Stage Predictions</h2>
+
+                <!-- Example: Group A -->
+                <div class="match">
+                    <label>Group A – 1st Place</label>
+                    <select id="groupA1" class="group-select">
+                        <option value="">Select team</option>
+                        <option>Brazil</option>
+                        <option>Germany</option>
+                        <option>Japan</option>
+                        <option>USA</option>
+                    </select>
+                </div>
+
+                <div class="match">
+                    <label>Group A – 2nd Place</label>
+                    <select id="groupA2" class="group-select">
+                        <option value="">Select team</option>
+                        <option>Brazil</option>
+                        <option>Germany</option>
+                        <option>Japan</option>
+                        <option>USA</option>
+                    </select>
+                </div>
+
+                <!-- Example: Group B -->
+                <div class="match">
+                    <label>Group B – 1st Place</label>
+                    <select id="groupB1" class="group-select">
+                        <option value="">Select team</option>
+                        <option>Argentina</option>
+                        <option>France</option>
+                        <option>Mexico</option>
+                        <option>Poland</option>
+                    </select>
+                </div>
+
+                <div class="match">
+                    <label>Group B – 2nd Place</label>
+                    <select id="groupB2" class="group-select">
+                        <option value="">Select team</option>
+                        <option>Argentina</option>
+                        <option>France</option>
+                        <option>Mexico</option>
+                        <option>Poland</option>
+                    </select>
+                </div>
+
+                <!-- Repeat Groups C-H as needed -->
+
+                <button id="lockGroupsBtn">Confirm Group Stage</button>
+            </div>
+        </div>
+
+        <div id="tab-bracket" class="tab-pane">
+            <div class="container">
+                <h2>Bracket</h2>
+                <p>Round of 16 and predictions here...</p>
+            </div>
+        </div>
+
+        <div id="tab-stats" class="tab-pane">
+            <div class="container">
+                <h2>Stats</h2>
+                <p>Stats content goes here...</p>
+            </div>
+        </div>
+
+        <div id="tab-teams" class="tab-pane">
+            <div class="container">
+                <h2>Teams</h2>
+                <p>Team details go here...</p>
+            </div>
+        </div>
+
+        <div id="tab-about" class="tab-pane">
+            <div class="container">
+                <h2>About</h2>
+                <p>This is a World Cup bracket prediction tool...</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+<button id="loginBtn" style="position:absolute; top:25px; right:25px; padding:10px 20px; font-size:16px; border:none; border-radius:8px; cursor:pointer; background:#00c6ff; color:white;">Login</button>
+
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</div>
+<script>
+    const loginBtn = document.getElementById("loginBtn");
+    const modal = document.getElementById("loginModal");
+    const closeBtn = modal.querySelector(".close");
+    const mainContent = document.getElementById("mainContent");
+
+    // Show login modal on page load
+    window.onload = () => modal.style.display = "block";
+
+    // Open modal via button
+    loginBtn.onclick = () => modal.style.display = "block";
+    closeBtn.onclick = () => modal.style.display = "none";
+    window.onclick = e => { if(e.target == modal) modal.style.display = "none"; };
+
+    // Login form submission
+    document.getElementById("loginForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        // Simple demo check: allow any non-empty username/password
+        if(username && password){
+            alert(`Welcome, ${username}!`);
+            modal.style.display = "none";
+            mainContent.style.display = "block"; // Reveal the main content
+        } else {
+            alert("Please enter username and password");
+        }
+    });
+
+    // -----------------------------
+    // Tab Switching Logic
+    // -----------------------------
+    document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const tabID = btn.dataset.tab;
+            document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            document.querySelectorAll(".tab-pane").forEach(tab => tab.classList.remove("active"));
+            document.getElementById(tabID).classList.add("active");
+        });
+    });
+
+    // -----------------------------
+    // Lock Group Stage → Populate Round of 16
+    // -----------------------------
+    document.getElementById("lockGroupsBtn").addEventListener("click", () => {
+        // Gather all group winners and runners-up
+        const groups = {
+            A1: document.getElementById("groupA1").value,
+            A2: document.getElementById("groupA2").value,
+            B1: document.getElementById("groupB1").value,
+            B2: document.getElementById("groupB2").value,
+            // Example placeholders; repeat for C–H groups as needed
+            C1: "Spain", C2: "Germany",
+            D1: "France", D2: "Argentina",
+            E1: "Portugal", E2: "Netherlands",
+            F1: "Belgium", F2: "Croatia",
+            G1: "England", G2: "Italy",
+            H1: "USA", H2: "Japan"
+        };
+
+        // Make sure all groups A & B are selected
+        for (let key of ["A1","A2","B1","B2"]) {
+            if (!groups[key]) {
+                alert("Please complete all group predictions.");
+                return;
+            }
+        }
+
+        // Round of 16 matchups
+        const r16 = {
+            r16_1: [groups.A1, groups.B2],
+            r16_2: [groups.C1, groups.D2],
+            r16_3: [groups.E1, groups.F2],
+            r16_4: [groups.G1, groups.H2],
+            r16_5: [groups.B1, groups.A2],
+            r16_6: [groups.D1, groups.C2],
+            r16_7: [groups.F1, groups.E2],
+            r16_8: [groups.H1, groups.G2]
+        };
+
+        // Populate Round of 16 selects
+        Object.entries(r16).forEach(([id, teams]) => {
+            const sel = document.getElementById(id);
+            sel.innerHTML = `<option value="">Select winner</option>`;
+            sel.innerHTML += `<option>${teams[0]}</option>`;
+            sel.innerHTML += `<option>${teams[1]}</option>`;
+        });
+
+        alert("Group Stage locked! Round of 16 generated.");
+
+        // Switch automatically to Bracket tab
+        document.querySelector(".nav-item[data-tab='tab-bracket']").click();
+    });
+
+    // -----------------------------
+    // Update Semifinals and Final dynamically
+    // -----------------------------
+    function updateSemis() {
+        const qf1 = document.querySelector("select[name='qf1']").value;
+        const qf2 = document.querySelector("select[name='qf2']").value;
+        const qf3 = document.querySelector("select[name='qf3']").value;
+        const qf4 = document.querySelector("select[name='qf4']").value;
+
+        const sf1 = document.querySelector("select[name='sf1']");
+        const sf2 = document.querySelector("select[name='sf2']");
+
+        sf1.innerHTML = `<option value="">Select winner</option>`;
+        sf2.innerHTML = `<option value="">Select winner</option>`;
+
+        if (qf1) sf1.innerHTML += `<option>${qf1}</option>`;
+        if (qf2) sf1.innerHTML += `<option>${qf2}</option>`;
+        if (qf3) sf2.innerHTML += `<option>${qf3}</option>`;
+        if (qf4) sf2.innerHTML += `<option>${qf4}</option>`;
+
+        updateFinal();
+    }
+
+    function updateFinal() {
+        const sf1 = document.querySelector("select[name='sf1']").value;
+        const sf2 = document.querySelector("select[name='sf2']").value;
+
+        const final = document.querySelector("select[name='final']");
+        final.innerHTML = `<option value="">Select champion</option>`;
+        if (sf1) final.innerHTML += `<option>${sf1}</option>`;
+        if (sf2) final.innerHTML += `<option>${sf2}</option>`;
+    }
+
+    // Attach event listeners
+    document.querySelectorAll("select[name^='qf']").forEach(sel => sel.addEventListener("change", updateSemis));
+    document.querySelectorAll("select[name^='sf']").forEach(sel => sel.addEventListener("change", updateFinal));
+
+    // -----------------------------
+    // Bracket Submission
+    // -----------------------------
+    document.getElementById("bracketForm").addEventListener("submit", function(e){
+        e.preventDefault();
+        const formData = new FormData(this);
+        const content = document.getElementById("resultsContent");
+        content.innerHTML = "";
+        formData.forEach((value,key) => {
+            content.innerHTML += `<div class="result-item">${key.toUpperCase()}: ${value}</div>`;
+        });
+        document.getElementById("results").style.display = "block";
+    });
+</script>
+
+</body>
+</html>
