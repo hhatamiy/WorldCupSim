@@ -1,0 +1,171 @@
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a1a2a, #003b5c);
+  color: white;
+}
+
+.dashboard-header {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.logout-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255, 0, 0, 0.3);
+  color: white;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 0, 0, 0.5);
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.dashboard-actions {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.new-draw-btn {
+  padding: 15px 30px;
+  font-size: 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.new-draw-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 200, 255, 0.4);
+}
+
+.draws-section h2 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 30px;
+}
+
+.draws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.draw-card {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 20px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.draw-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.draw-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.draw-card-header h3 {
+  margin: 0;
+  font-size: 20px;
+  flex: 1;
+}
+
+.delete-btn {
+  background: rgba(255, 0, 0, 0.3);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background: rgba(255, 0, 0, 0.6);
+}
+
+.draw-date {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 5px 0;
+}
+
+.completed-badge {
+  display: inline-block;
+  background: rgba(0, 255, 120, 0.3);
+  color: #00ff78;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+}
+
+.error-message {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ffcccc;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.no-draws {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+}
+
+.no-draws p {
+  margin: 10px 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
