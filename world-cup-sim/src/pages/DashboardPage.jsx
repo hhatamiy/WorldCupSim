@@ -2,111 +2,219 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DashboardPage.css';
 
-// 32 teams with emojis - mix of qualified and temporary teams
-const INITIAL_TEAMS = [
-  'USA 🇺🇸', 'Canada 🇨🇦', 'Mexico 🇲🇽', 'Argentina 🇦🇷',
-  'Brazil 🇧🇷', 'Colombia 🇨🇴', 'Ecuador 🇪🇨', 'Paraguay 🇵🇾',
-  'Uruguay 🇺🇾', 'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'France 🇫🇷', 'Germany 🇩🇪',
-  'Spain 🇪🇸', 'Italy 🇮🇹', 'Portugal 🇵🇹', 'Netherlands 🇳🇱',
-  'Belgium 🇧🇪', 'Croatia 🇭🇷', 'Switzerland 🇨🇭', 'Austria 🇦🇹',
-  'Japan 🇯🇵', 'South Korea 🇰🇷', 'Australia 🇦🇺', 'Saudi Arabia 🇸🇦',
-  'Morocco 🇲🇦', 'Senegal 🇸🇳', 'Egypt 🇪🇬', 'Ghana 🇬🇭',
-  'Nigeria 🇳🇬', 'Cameroon 🇨🇲', 'Tunisia 🇹🇳', 'Algeria 🇩🇿'
-];
+// 48 teams organized by pots
+const POTS = {
+  pot1: [
+    'United States 🇺🇸', 'Mexico 🇲🇽', 'Canada 🇨🇦', 'Spain 🇪🇸',
+    'Argentina 🇦🇷', 'France 🇫🇷', 'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Brazil 🇧🇷',
+    'Portugal 🇵🇹', 'Netherlands 🇳🇱', 'Belgium 🇧🇪', 'Germany 🇩🇪'
+  ],
+  pot2: [
+    'Croatia 🇭🇷', 'Morocco 🇲🇦', 'Colombia 🇨🇴', 'Uruguay 🇺🇾',
+    'Switzerland 🇨🇭', 'Japan 🇯🇵', 'Senegal 🇸🇳', 'Iran 🇮🇷',
+    'South Korea 🇰🇷', 'Ecuador 🇪🇨', 'Austria 🇦🇹', 'Australia 🇦🇺'
+  ],
+  pot3: [
+    'Norway 🇳🇴', 'Panama 🇵🇦', 'Egypt 🇪🇬', 'Algeria 🇩🇿',
+    'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Paraguay 🇵🇾', 'Tunisia 🇹🇳', 'Ivory Coast 🇨🇮',
+    'Uzbekistan 🇺🇿', 'Qatar 🇶🇦', 'Saudi Arabia 🇸🇦', 'South Africa 🇿🇦'
+  ],
+  pot4: [
+    'Jordan 🇯🇴', 'Cape Verde 🇨🇻', 'Ghana 🇬🇭', 'Curaçao 🇨🇼',
+    'Haiti 🇭🇹', 'New Zealand 🇳🇿', 'Italy 🇮🇹', 'Ukraine 🇺🇦',
+    'Turkey 🇹🇷', 'Czech Republic 🇨🇿', 'Iraq 🇮🇶', 'DR Congo 🇨🇩'
+  ]
+};
 
-function initializeBracket() {
-    // Split teams into left and right halves
-    const leftHalf = INITIAL_TEAMS.slice(0, 16);
-    const rightHalf = INITIAL_TEAMS.slice(16, 32);
+function initializeGroups() {
+  const groups = {};
+  const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  
+  groupNames.forEach((groupName, index) => {
+    groups[groupName] = {
+      teams: [
+        { name: POTS.pot1[index], pot: 1, position: 1 },
+        { name: POTS.pot2[index], pot: 2, position: 2 },
+        { name: POTS.pot3[index], pot: 3, position: 3 },
+        { name: POTS.pot4[index], pot: 4, position: 4 }
+      ]
+    };
+  });
+  
+  return groups;
+}
 
-    // Left half: Round 1 (8 matchups)
-    const leftRound1 = [];
-    for (let i = 0; i < 16; i += 2) {
-      leftRound1.push({
-        team1: leftHalf[i],
-        team2: leftHalf[i + 1],
+function DashboardPage() {
+  const navigate = useNavigate();
+  const [groups, setGroups] = useState(() => initializeGroups());
+  const [thirdPlaceTeams, setThirdPlaceTeams] = useState([]);
+  const [knockoutBracket, setKnockoutBracket] = useState(null);
+  const [champion, setChampion] = useState(null);
+  const [draggedTeam, setDraggedTeam] = useState(null);
+  const [currentView, setCurrentView] = useState('groups'); // 'groups', 'third-place', 'bracket'
+
+  const handleLogout = () => {
+    localStorage.removeItem('jwt');
+    navigate('/login');
+  };
+
+  const handleReset = () => {
+    setGroups(initializeGroups());
+    setThirdPlaceTeams([]);
+    setKnockoutBracket(null);
+    setChampion(null);
+    setCurrentView('groups');
+  };
+
+  // Drag and drop handlers for group stage
+  const handleDragStart = (e, groupName, teamIndex) => {
+    setDraggedTeam({ groupName, teamIndex });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetGroupName, targetTeamIndex) => {
+    e.preventDefault();
+    
+    if (!draggedTeam) return;
+
+    const newGroups = { ...groups };
+    const sourceGroup = newGroups[draggedTeam.groupName];
+    const targetGroup = newGroups[targetGroupName];
+
+    // Swap teams
+    const temp = sourceGroup.teams[draggedTeam.teamIndex];
+    sourceGroup.teams[draggedTeam.teamIndex] = targetGroup.teams[targetTeamIndex];
+    targetGroup.teams[targetTeamIndex] = temp;
+
+    setGroups(newGroups);
+    setDraggedTeam(null);
+  };
+
+  // Advance teams to third place ranking
+  const advanceToThirdPlace = () => {
+    const groupNames = Object.keys(groups);
+    const thirdPlace = groupNames.map(groupName => ({
+      groupName,
+      team: groups[groupName].teams[2], // 3rd position (index 2)
+      points: 0, // User will rank these
+      goalDifference: 0,
+      goalsScored: 0
+    }));
+    setThirdPlaceTeams(thirdPlace);
+    setCurrentView('third-place');
+  };
+
+  // Move third place team up/down in ranking
+  const moveThirdPlaceTeam = (index, direction) => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === thirdPlaceTeams.length - 1)) {
+      return;
+    }
+
+    const newThirdPlace = [...thirdPlaceTeams];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Swap
+    [newThirdPlace[index], newThirdPlace[targetIndex]] = [newThirdPlace[targetIndex], newThirdPlace[index]];
+    
+    setThirdPlaceTeams(newThirdPlace);
+  };
+
+  // Generate knockout bracket
+  const generateKnockoutBracket = () => {
+    const groupNames = Object.keys(groups);
+    const qualifiedTeams = [];
+
+    // Add first and second place from each group
+    groupNames.forEach(groupName => {
+      qualifiedTeams.push({
+        team: groups[groupName].teams[0].name,
+        type: 'first',
+        group: groupName
+      });
+      qualifiedTeams.push({
+        team: groups[groupName].teams[1].name,
+        type: 'second',
+        group: groupName
+      });
+    });
+
+    // Add top 8 third place teams
+    const top8Third = thirdPlaceTeams.slice(0, 8);
+    top8Third.forEach(item => {
+      qualifiedTeams.push({
+        team: item.team.name,
+        type: 'third',
+        group: item.groupName
+      });
+    });
+
+    // Build Round of 32 bracket (simplified - would need complex matching algorithm)
+    // For now, create a basic structure
+    const roundOf32 = [];
+    for (let i = 0; i < 32; i += 2) {
+      roundOf32.push({
+        team1: qualifiedTeams[i]?.team || 'TBD',
+        team2: qualifiedTeams[i + 1]?.team || 'TBD',
         winner: null
       });
     }
 
-    // Right half: Round 1 (8 matchups)
-    const rightRound1 = [];
-    for (let i = 0; i < 16; i += 2) {
-      rightRound1.push({
-        team1: rightHalf[i],
-        team2: rightHalf[i + 1],
-        winner: null
-      });
-    }
-
-    // Left half: Round 2 (4 matchups)
-    const leftRound2 = Array(4).fill(null).map(() => ({
+    const roundOf16 = Array(8).fill(null).map(() => ({
       team1: null,
       team2: null,
       winner: null
     }));
 
-    // Right half: Round 2 (4 matchups)
-    const rightRound2 = Array(4).fill(null).map(() => ({
+    const quarterfinals = Array(4).fill(null).map(() => ({
       team1: null,
       team2: null,
       winner: null
     }));
 
-    // Left half: Round 3 (2 matchups)
-    const leftRound3 = Array(2).fill(null).map(() => ({
+    const semifinals = Array(2).fill(null).map(() => ({
       team1: null,
       team2: null,
       winner: null
     }));
 
-    // Right half: Round 3 (2 matchups)
-    const rightRound3 = Array(2).fill(null).map(() => ({
-      team1: null,
-      team2: null,
-      winner: null
-    }));
-
-    // Left half: Round 4 (1 matchup)
-    const leftRound4 = [{
-      team1: null,
-      team2: null,
-      winner: null
-    }];
-
-    // Right half: Round 4 (1 matchup)
-    const rightRound4 = [{
-      team1: null,
-      team2: null,
-      winner: null
-    }];
-
-    // Final: 1 matchup
     const final = [{
       team1: null,
       team2: null,
       winner: null
     }];
 
-    return {
-      left: [leftRound1, leftRound2, leftRound3, leftRound4],
-      right: [rightRound1, rightRound2, rightRound3, rightRound4],
+    setKnockoutBracket({
+      left: [
+        roundOf32.slice(0, 8),
+        roundOf16.slice(0, 4),
+        quarterfinals.slice(0, 2),
+        semifinals.slice(0, 1)
+      ],
+      right: [
+        roundOf32.slice(8, 16),
+        roundOf16.slice(4, 8),
+        quarterfinals.slice(2, 4),
+        semifinals.slice(1, 2)
+      ],
       final: final
-    };
-}
+    });
 
-function DashboardPage() {
-  const navigate = useNavigate();
-  const [bracket, setBracket] = useState(() => initializeBracket());
-  const [champion, setChampion] = useState(null);
+    setCurrentView('bracket');
+  };
 
-  const handleTeamClick = (side, roundIndex, matchupIndex, teamPosition) => {
-    if (champion) return; // Don't allow changes after champion is determined
+  // Bracket team click handler (from previous implementation)
+  const handleBracketTeamClick = (side, roundIndex, matchupIndex, teamPosition) => {
+    if (champion || !knockoutBracket) return;
 
     const newBracket = {
-      left: bracket.left.map(round => round.map(matchup => ({ ...matchup }))),
-      right: bracket.right.map(round => round.map(matchup => ({ ...matchup }))),
-      final: bracket.final.map(matchup => ({ ...matchup }))
+      left: knockoutBracket.left.map(round => round.map(matchup => ({ ...matchup }))),
+      right: knockoutBracket.right.map(round => round.map(matchup => ({ ...matchup }))),
+      final: knockoutBracket.final.map(matchup => ({ ...matchup }))
     };
 
     let matchup;
@@ -118,34 +226,29 @@ function DashboardPage() {
 
     const selectedTeam = matchup[teamPosition];
 
-    // Check if opponent is determined
     if (side === 'final') {
-      // Final: check if both teams are present
       if (matchup.team1 && matchup.team2) {
         matchup.winner = selectedTeam;
         setChampion(selectedTeam);
       }
     } else if (roundIndex === 0) {
-      // Round 1: opponent is always determined
       matchup.winner = selectedTeam;
-      advanceTeam(newBracket, side, roundIndex, matchupIndex, selectedTeam);
+      advanceTeamInBracket(newBracket, side, roundIndex, matchupIndex, selectedTeam);
     } else {
-      // Other rounds: check if both teams are present
       if (matchup.team1 && matchup.team2) {
         matchup.winner = selectedTeam;
-        advanceTeam(newBracket, side, roundIndex, matchupIndex, selectedTeam);
+        advanceTeamInBracket(newBracket, side, roundIndex, matchupIndex, selectedTeam);
       }
     }
 
-    setBracket(newBracket);
+    setKnockoutBracket(newBracket);
   };
 
-  const advanceTeam = (newBracket, side, currentRoundIndex, currentMatchupIndex, team) => {
+  const advanceTeamInBracket = (newBracket, side, currentRoundIndex, currentMatchupIndex, team) => {
     if (side === 'final') return;
 
     const nextRoundIndex = currentRoundIndex + 1;
     
-    // If this is the last round of a side, advance to final
     if (nextRoundIndex >= newBracket[side].length) {
       const finalMatchup = newBracket.final[0];
       const position = side === 'left' ? 'team1' : 'team2';
@@ -155,8 +258,6 @@ function DashboardPage() {
     } else {
       const nextMatchupIndex = Math.floor(currentMatchupIndex / 2);
       const nextMatchup = newBracket[side][nextRoundIndex][nextMatchupIndex];
-      
-      // Determine position in next matchup (0 for first half, 1 for second half)
       const positionInNextMatchup = currentMatchupIndex % 2 === 0 ? 'team1' : 'team2';
       
       if (!nextMatchup[positionInNextMatchup]) {
@@ -165,44 +266,54 @@ function DashboardPage() {
     }
   };
 
-  const isTeamClickable = (side, roundIndex, matchupIndex) => {
-    if (champion) return false;
+  const isBracketTeamClickable = (side, roundIndex, matchupIndex) => {
+    if (champion || !knockoutBracket) return false;
     
     let matchup;
     if (side === 'final') {
-      matchup = bracket.final[matchupIndex];
+      matchup = knockoutBracket.final[matchupIndex];
     } else {
-      matchup = bracket[side][roundIndex][matchupIndex];
+      matchup = knockoutBracket[side][roundIndex][matchupIndex];
     }
     
     if (side === 'final') {
       return matchup.team1 && matchup.team2 && matchup.winner === null;
     } else if (roundIndex === 0) {
-      // Round 1: always clickable
       return matchup.winner === null;
     } else {
-      // Other rounds: clickable only if both teams are present and no winner yet
       return matchup.team1 && matchup.team2 && matchup.winner === null;
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    navigate('/login');
-  };
-
-  const handleReset = () => {
-    setBracket(initializeBracket());
-    setChampion(null);
   };
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>World Cup 2026 Bracket</h1>
+        <h1>World Cup 2026 Simulator</h1>
         <div className="header-actions">
+          <button
+            onClick={() => setCurrentView('groups')}
+            className={`view-btn ${currentView === 'groups' ? 'active' : ''}`}
+          >
+            Group Stage
+          </button>
+          {thirdPlaceTeams.length > 0 && (
+            <button
+              onClick={() => setCurrentView('third-place')}
+              className={`view-btn ${currentView === 'third-place' ? 'active' : ''}`}
+            >
+              3rd Place Ranking
+            </button>
+          )}
+          {knockoutBracket && (
+            <button
+              onClick={() => setCurrentView('bracket')}
+              className={`view-btn ${currentView === 'bracket' ? 'active' : ''}`}
+            >
+              Knockout Bracket
+            </button>
+          )}
           <button onClick={handleReset} className="reset-btn">
-            Reset Bracket
+            Reset
           </button>
           <button onClick={handleLogout} className="logout-btn">
             Logout
@@ -210,168 +321,259 @@ function DashboardPage() {
         </div>
       </header>
 
-      <div className="bracket-container">
-        {champion && (
-          <div className="champion-announcement">
-            <div className="champion-effect">
-              <h2>🏆 CHAMPION 🏆</h2>
-              <div className="champion-name">{champion}</div>
+      <div className="content-container">
+        {currentView === 'groups' && (
+          <div className="groups-section">
+            <h2>Group Stage</h2>
+            <p className="instruction-text">Drag and drop teams to swap positions</p>
+            
+            <div className="groups-grid">
+              {Object.keys(groups).map((groupName) => (
+                <div key={groupName} className="group-card">
+                  <h3>Group {groupName}</h3>
+                  <div className="group-teams">
+                    {groups[groupName].teams.map((team, index) => (
+                      <div
+                        key={index}
+                        className={`group-team pot-${team.pot}`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, groupName, index)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, groupName, index)}
+                      >
+                        <span className="position-number">{index + 1}.</span>
+                        <span className="team-name">{team.name}</span>
+                        <span className="pot-badge">Pot {team.pot}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="action-section">
+              <button onClick={advanceToThirdPlace} className="advance-btn">
+                Finalize Groups & Rank 3rd Place Teams
+              </button>
             </div>
           </div>
         )}
 
-        <div className="bracket-tree">
-          {/* Left Half */}
-          <div className="bracket-half bracket-left">
-            {bracket.left.map((round, roundIndex) => (
-              <div key={roundIndex} className={`round round-${roundIndex + 1}`}>
-                <div className="round-label">
-                  {roundIndex === 0 && 'Round of 32'}
-                  {roundIndex === 1 && 'Round of 16'}
-                  {roundIndex === 2 && 'Quarterfinals'}
-                  {roundIndex === 3 && 'Semifinals'}
+        {currentView === 'third-place' && (
+          <div className="third-place-section">
+            <h2>Rank Third Place Teams</h2>
+            <p className="instruction-text">Top 8 teams will advance to the knockout stage</p>
+            
+            <div className="third-place-table">
+              {thirdPlaceTeams.map((item, index) => (
+                <div
+                  key={index}
+                  className={`third-place-row ${index < 8 ? 'qualified' : 'eliminated'}`}
+                >
+                  <div className="rank-number">{index + 1}</div>
+                  <div className="team-info">
+                    <span className="group-label">Group {item.groupName}</span>
+                    <span className="team-name">{item.team.name}</span>
+                  </div>
+                  <div className="rank-controls">
+                    <button
+                      onClick={() => moveThirdPlaceTeam(index, 'up')}
+                      disabled={index === 0}
+                      className="rank-btn"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveThirdPlaceTeam(index, 'down')}
+                      disabled={index === thirdPlaceTeams.length - 1}
+                      className="rank-btn"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  {index === 7 && <div className="cutoff-line">Qualification Line</div>}
                 </div>
-                <div className="round-matchups">
-                  {round.map((matchup, matchupIndex) => (
-                    <div key={matchupIndex} className="matchup-wrapper">
-                      <div className="matchup">
-                        <div
-                          className={`team ${!matchup.team1 ? 'empty' : ''} ${
-                            isTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
-                          } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
-                          onClick={() => {
-                            if (isTeamClickable('left', roundIndex, matchupIndex)) {
-                              handleTeamClick('left', roundIndex, matchupIndex, 'team1');
-                            }
-                          }}
-                        >
-                          {matchup.team1 || 'TBD'}
-                        </div>
-                        <div className="vs">vs</div>
-                        <div
-                          className={`team ${!matchup.team2 ? 'empty' : ''} ${
-                            isTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
-                          } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
-                          onClick={() => {
-                            if (isTeamClickable('left', roundIndex, matchupIndex)) {
-                              handleTeamClick('left', roundIndex, matchupIndex, 'team2');
-                            }
-                          }}
-                        >
-                          {matchup.team2 || 'TBD'}
-                        </div>
+              ))}
+            </div>
+
+            <div className="action-section">
+              <button onClick={generateKnockoutBracket} className="advance-btn">
+                Generate Knockout Bracket
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentView === 'bracket' && knockoutBracket && (
+          <div className="bracket-section">
+            <h2>Knockout Stage</h2>
+            
+            {champion && (
+              <div className="champion-announcement">
+                <div className="champion-effect">
+                  <h2>🏆 CHAMPION 🏆</h2>
+                  <div className="champion-name">{champion}</div>
+                </div>
+              </div>
+            )}
+
+            <div className="bracket-tree">
+              {/* Left Half */}
+              <div className="bracket-half bracket-left">
+                {[...knockoutBracket.left].reverse().map((round, reversedRoundIndex) => {
+                  const roundIndex = knockoutBracket.left.length - 1 - reversedRoundIndex;
+                  return (
+                    <div key={roundIndex} className={`round round-${roundIndex + 1}`}>
+                      <div className="round-label">
+                        {roundIndex === 0 && 'Round of 32'}
+                        {roundIndex === 1 && 'Round of 16'}
+                        {roundIndex === 2 && 'Quarterfinals'}
+                        {roundIndex === 3 && 'Semifinals'}
                       </div>
-                      {roundIndex < bracket.left.length - 1 && (
-                        <div className="connector connector-right"></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Final (Center) */}
-          <div className="bracket-center">
-            <div className="round-label">Final</div>
-            {bracket.final.map((matchup, matchupIndex) => (
-              <div key={matchupIndex} className="matchup-wrapper final-wrapper">
-                <div className="matchup final-matchup">
-                  <div
-                    className={`team ${!matchup.team1 ? 'empty' : ''} ${
-                      isTeamClickable('final', 0, matchupIndex) ? 'clickable' : ''
-                    } ${matchup.winner === matchup.team1 ? 'winner' : ''} ${
-                      champion === matchup.team1 ? 'champion' : ''
-                    }`}
-                    onClick={() => {
-                      if (isTeamClickable('final', 0, matchupIndex)) {
-                        handleTeamClick('final', 0, matchupIndex, 'team1');
-                      }
-                    }}
-                  >
-                    {matchup.team1 || 'TBD'}
-                  </div>
-                  <div className="vs">vs</div>
-                  <div
-                    className={`team ${!matchup.team2 ? 'empty' : ''} ${
-                      isTeamClickable('final', 0, matchupIndex) ? 'clickable' : ''
-                    } ${matchup.winner === matchup.team2 ? 'winner' : ''} ${
-                      champion === matchup.team2 ? 'champion' : ''
-                    }`}
-                    onClick={() => {
-                      if (isTeamClickable('final', 0, matchupIndex)) {
-                        handleTeamClick('final', 0, matchupIndex, 'team2');
-                      }
-                    }}
-                  >
-                    {matchup.team2 || 'TBD'}
-                  </div>
-                </div>
-                {matchup.winner && (
-                  <div className="champion-box">
-                    <div className="champion-team">{matchup.winner}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Right Half - Reversed to face center */}
-          <div className="bracket-half bracket-right">
-            {[...bracket.right].reverse().map((round, reversedRoundIndex) => {
-              const roundIndex = bracket.right.length - 1 - reversedRoundIndex;
-              return (
-                <div key={roundIndex} className={`round round-${roundIndex + 1}`}>
-                  <div className="round-label">
-                    {roundIndex === 0 && 'Round of 32'}
-                    {roundIndex === 1 && 'Round of 16'}
-                    {roundIndex === 2 && 'Quarterfinals'}
-                    {roundIndex === 3 && 'Semifinals'}
-                  </div>
-                  <div className="round-matchups">
-                    {[...round].reverse().map((matchup, reversedIndex) => {
-                      const matchupIndex = round.length - 1 - reversedIndex;
-                      return (
-                        <div key={matchupIndex} className="matchup-wrapper">
-                          {roundIndex < bracket.right.length - 1 && (
-                            <div className="connector connector-left"></div>
-                          )}
-                          <div className="matchup">
-                            <div
-                              className={`team ${!matchup.team1 ? 'empty' : ''} ${
-                                isTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
-                              } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
-                              onClick={() => {
-                                if (isTeamClickable('right', roundIndex, matchupIndex)) {
-                                  handleTeamClick('right', roundIndex, matchupIndex, 'team1');
-                                }
-                              }}
-                            >
-                              {matchup.team1 || 'TBD'}
+                      <div className="round-matchups">
+                        {round.map((matchup, matchupIndex) => (
+                          <div key={matchupIndex} className="matchup-wrapper">
+                            <div className="matchup">
+                              <div
+                                className={`team ${!matchup.team1 ? 'empty' : ''} ${
+                                  isBracketTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
+                                } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
+                                onClick={() => {
+                                  if (isBracketTeamClickable('left', roundIndex, matchupIndex)) {
+                                    handleBracketTeamClick('left', roundIndex, matchupIndex, 'team1');
+                                  }
+                                }}
+                              >
+                                {matchup.team1 || 'TBD'}
+                              </div>
+                              <div className="vs">vs</div>
+                              <div
+                                className={`team ${!matchup.team2 ? 'empty' : ''} ${
+                                  isBracketTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
+                                } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
+                                onClick={() => {
+                                  if (isBracketTeamClickable('left', roundIndex, matchupIndex)) {
+                                    handleBracketTeamClick('left', roundIndex, matchupIndex, 'team2');
+                                  }
+                                }}
+                              >
+                                {matchup.team2 || 'TBD'}
+                              </div>
                             </div>
-                            <div className="vs">vs</div>
-                            <div
-                              className={`team ${!matchup.team2 ? 'empty' : ''} ${
-                                isTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
-                              } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
-                              onClick={() => {
-                                if (isTeamClickable('right', roundIndex, matchupIndex)) {
-                                  handleTeamClick('right', roundIndex, matchupIndex, 'team2');
-                                }
-                              }}
-                            >
-                              {matchup.team2 || 'TBD'}
-                            </div>
+                            {roundIndex < knockoutBracket.left.length - 1 && (
+                              <div className="connector connector-right"></div>
+                            )}
                           </div>
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Final (Center) */}
+              <div className="bracket-center">
+                <div className="round-label">Final</div>
+                {knockoutBracket.final.map((matchup, matchupIndex) => (
+                  <div key={matchupIndex} className="matchup-wrapper final-wrapper">
+                    <div className="matchup final-matchup">
+                      <div
+                        className={`team ${!matchup.team1 ? 'empty' : ''} ${
+                          isBracketTeamClickable('final', 0, matchupIndex) ? 'clickable' : ''
+                        } ${matchup.winner === matchup.team1 ? 'winner' : ''} ${
+                          champion === matchup.team1 ? 'champion' : ''
+                        }`}
+                        onClick={() => {
+                          if (isBracketTeamClickable('final', 0, matchupIndex)) {
+                            handleBracketTeamClick('final', 0, matchupIndex, 'team1');
+                          }
+                        }}
+                      >
+                        {matchup.team1 || 'TBD'}
+                      </div>
+                      <div className="vs">vs</div>
+                      <div
+                        className={`team ${!matchup.team2 ? 'empty' : ''} ${
+                          isBracketTeamClickable('final', 0, matchupIndex) ? 'clickable' : ''
+                        } ${matchup.winner === matchup.team2 ? 'winner' : ''} ${
+                          champion === matchup.team2 ? 'champion' : ''
+                        }`}
+                        onClick={() => {
+                          if (isBracketTeamClickable('final', 0, matchupIndex)) {
+                            handleBracketTeamClick('final', 0, matchupIndex, 'team2');
+                          }
+                        }}
+                      >
+                        {matchup.team2 || 'TBD'}
+                      </div>
+                    </div>
+                    {matchup.winner && (
+                      <div className="champion-box">
+                        <div className="champion-team">{matchup.winner}</div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+
+              {/* Right Half */}
+              <div className="bracket-half bracket-right">
+                {[...knockoutBracket.right].reverse().map((round, reversedRoundIndex) => {
+                  const roundIndex = knockoutBracket.right.length - 1 - reversedRoundIndex;
+                  return (
+                    <div key={roundIndex} className={`round round-${roundIndex + 1}`}>
+                      <div className="round-label">
+                        {roundIndex === 0 && 'Round of 32'}
+                        {roundIndex === 1 && 'Round of 16'}
+                        {roundIndex === 2 && 'Quarterfinals'}
+                        {roundIndex === 3 && 'Semifinals'}
+                      </div>
+                      <div className="round-matchups">
+                        {[...round].reverse().map((matchup, reversedIndex) => {
+                          const matchupIndex = round.length - 1 - reversedIndex;
+                          return (
+                            <div key={matchupIndex} className="matchup-wrapper">
+                              {roundIndex < knockoutBracket.right.length - 1 && (
+                                <div className="connector connector-left"></div>
+                              )}
+                              <div className="matchup">
+                                <div
+                                  className={`team ${!matchup.team1 ? 'empty' : ''} ${
+                                    isBracketTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
+                                  } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
+                                  onClick={() => {
+                                    if (isBracketTeamClickable('right', roundIndex, matchupIndex)) {
+                                      handleBracketTeamClick('right', roundIndex, matchupIndex, 'team1');
+                                    }
+                                  }}
+                                >
+                                  {matchup.team1 || 'TBD'}
+                                </div>
+                                <div className="vs">vs</div>
+                                <div
+                                  className={`team ${!matchup.team2 ? 'empty' : ''} ${
+                                    isBracketTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
+                                  } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
+                                  onClick={() => {
+                                    if (isBracketTeamClickable('right', roundIndex, matchupIndex)) {
+                                      handleBracketTeamClick('right', roundIndex, matchupIndex, 'team2');
+                                    }
+                                  }}
+                                >
+                                  {matchup.team2 || 'TBD'}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
