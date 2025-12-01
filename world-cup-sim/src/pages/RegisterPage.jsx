@@ -48,8 +48,17 @@ function RegisterPage() {
     }
   };
 
+  const handleAdminBypass = () => {
+    // Set a dummy token to bypass authentication
+    localStorage.setItem('jwt', 'admin-bypass-token');
+    navigate('/dashboard');
+  };
+
   return (
     <div className="auth-container">
+      <button className="admin-bypass-btn" onClick={handleAdminBypass}>
+        Admin Bypass
+      </button>
       <div className="auth-card">
         <h2>Register</h2>
         <form onSubmit={handleSubmit}>

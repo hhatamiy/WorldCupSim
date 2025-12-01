@@ -5,6 +5,7 @@
   align-items: center;
   background: linear-gradient(135deg, #0a1a2a, #003b5c);
   padding: 20px;
+  position: relative;
 }
 
 .auth-card {
@@ -102,5 +103,27 @@
   margin-bottom: 20px;
   text-align: center;
   border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.admin-bypass-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.admin-bypass-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
