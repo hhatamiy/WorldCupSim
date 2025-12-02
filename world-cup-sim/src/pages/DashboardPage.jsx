@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import './DashboardPage.css';
 
 // 48 teams organized by pots
@@ -147,143 +148,14 @@ function DashboardPage() {
       thirdPlaceMap[item.groupName] = item.team.name;
     });
 
-    // FIFA 2026 Round of 32 matching algorithm
-    // Based on which groups' third-place teams advance, determine matchups
-    const roundOf32 = [];
-
-    // Helper function to get third-place team from specific group combinations
-    // FIFA algorithm: returns the first qualifying third-place team from the possible groups
-    // The priority order is determined by the order of groups in the possibleGroups array
-    const getThirdPlace = (possibleGroups) => {
-      // Check groups in the order specified (FIFA priority order)
-      for (const group of possibleGroups) {
-        if (thirdPlaceGroups.has(group) && thirdPlaceMap[group]) {
-          return thirdPlaceMap[group];
-        }
-      }
-      // If no third-place team from these groups advanced, return null
-      return null;
-    };
-
-    // FIFA 2026 Round of 32 matchups based on the official bracket format
-    // The matching depends on which groups' third-place teams advance
-    // Following the pattern from the official bracket image
-
-    // Top Quarter (Matches 1-4) - Left side, top
-    // Match 1: Winner Group E vs 3rd (A/B/C/D/F)
-    roundOf32.push({
-      team1: groupWinners['E'] || 'TBD',
-      team2: getThirdPlace(['A', 'B', 'C', 'D', 'F']) || 'TBD',
-      winner: null
-    });
-
-    // Match 2: Winner Group I vs 3rd (C/D/F/G/H)
-    roundOf32.push({
-      team1: groupWinners['I'] || 'TBD',
-      team2: getThirdPlace(['C', 'D', 'F', 'G', 'H']) || 'TBD',
-      winner: null
-    });
-
-    // Match 3: Runner-up Group A vs Runner-up Group B
-    roundOf32.push({
-      team1: runnersUp['A'] || 'TBD',
-      team2: runnersUp['B'] || 'TBD',
-      winner: null
-    });
-
-    // Match 4: Winner Group F vs Runner-up Group C
-    roundOf32.push({
-      team1: groupWinners['F'] || 'TBD',
-      team2: runnersUp['C'] || 'TBD',
-      winner: null
-    });
-
-    // Second Quarter (Matches 5-8) - Left side, second
-    // Match 5: Runner-up Group K vs Runner-up Group L
-    roundOf32.push({
-      team1: runnersUp['K'] || 'TBD',
-      team2: runnersUp['L'] || 'TBD',
-      winner: null
-    });
-
-    // Match 6: Winner Group H vs Runner-up Group J
-    roundOf32.push({
-      team1: groupWinners['H'] || 'TBD',
-      team2: runnersUp['J'] || 'TBD',
-      winner: null
-    });
-
-    // Match 7: Winner Group D vs 3rd (B/E/F/I/J)
-    roundOf32.push({
-      team1: groupWinners['D'] || 'TBD',
-      team2: getThirdPlace(['B', 'E', 'F', 'I', 'J']) || 'TBD',
-      winner: null
-    });
-
-    // Match 8: Winner Group G vs 3rd (A/E/H/I/J)
-    roundOf32.push({
-      team1: groupWinners['G'] || 'TBD',
-      team2: getThirdPlace(['A', 'E', 'H', 'I', 'J']) || 'TBD',
-      winner: null
-    });
-
-    // Third Quarter (Matches 9-12) - Right side, top
-    // Match 9: Winner Group C vs 3rd (C/E/F/H/I)
-    roundOf32.push({
-      team1: groupWinners['C'] || 'TBD',
-      team2: getThirdPlace(['C', 'E', 'F', 'H', 'I']) || 'TBD',
-      winner: null
-    });
-
-    // Match 10: Runner-up Group F vs Runner-up Group E
-    roundOf32.push({
-      team1: runnersUp['F'] || 'TBD',
-      team2: runnersUp['E'] || 'TBD',
-      winner: null
-    });
-
-    // Match 11: Runner-up Group I vs Runner-up Group D
-    roundOf32.push({
-      team1: runnersUp['I'] || 'TBD',
-      team2: runnersUp['D'] || 'TBD',
-      winner: null
-    });
-
-    // Match 12: Winner Group A vs 3rd (E/H/I/J/K)
-    roundOf32.push({
-      team1: groupWinners['A'] || 'TBD',
-      team2: getThirdPlace(['E', 'H', 'I', 'J', 'K']) || 'TBD',
-      winner: null
-    });
-
-    // Fourth Quarter (Matches 13-16) - Right side, bottom
-    // Match 13: Winner Group L vs 3rd (C/E/F/H/I)
-    roundOf32.push({
-      team1: groupWinners['L'] || 'TBD',
-      team2: getThirdPlace(['C', 'E', 'F', 'H', 'I']) || 'TBD',
-      winner: null
-    });
-
-    // Match 14: Runner-up Group H vs Runner-up Group G
-    roundOf32.push({
-      team1: runnersUp['H'] || 'TBD',
-      team2: runnersUp['G'] || 'TBD',
-      winner: null
-    });
-
-    // Match 15: Winner Group J vs 3rd (E/F/G/I/J)
-    roundOf32.push({
-      team1: groupWinners['J'] || 'TBD',
-      team2: getThirdPlace(['E', 'F', 'G', 'I', 'J']) || 'TBD',
-      winner: null
-    });
-
-    // Match 16: Winner Group K vs 3rd (D/E/I/J/L)
-    roundOf32.push({
-      team1: groupWinners['K'] || 'TBD',
-      team2: getThirdPlace(['D', 'E', 'I', 'J', 'L']) || 'TBD',
-      winner: null
-    });
+    // Use the comprehensive knockout algorithm
+    // This handles all 500+ possible combinations of advancing third-place teams
+    const roundOf32 = generateRoundOf32Matchups(
+      thirdPlaceGroups,
+      groupWinners,
+      runnersUp,
+      thirdPlaceMap
+    );
 
     const roundOf16 = Array(8).fill(null).map(() => ({
       team1: null,
