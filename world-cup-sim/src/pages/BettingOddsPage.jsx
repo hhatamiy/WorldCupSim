@@ -292,31 +292,6 @@ function BettingOddsPage() {
               Betting odds are not currently available for this matchup. 
               Odds are typically published closer to the match date.
             </p>
-            <div className="mock-odds-info">
-              <h3 className="mock-title">Typical Odds Format</h3>
-              <div className="mock-odds-example">
-                <div className="mock-bookmaker">
-                  <h4>Example Bookmaker</h4>
-                  <div className="mock-market">
-                    <h5>Match Winner</h5>
-                    <div className="mock-outcomes">
-                      <div className="mock-outcome">
-                        <span>{extractCountryName(odds?.team1 || team1)}</span>
-                        <span className="mock-price">+150</span>
-                      </div>
-                      <div className="mock-outcome">
-                        <span>Draw</span>
-                        <span className="mock-price">+250</span>
-                      </div>
-                      <div className="mock-outcome">
-                        <span>{extractCountryName(odds?.team2 || team2)}</span>
-                        <span className="mock-price">+180</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
