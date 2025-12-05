@@ -8,6 +8,28 @@ function extractCountryName(teamString) {
   return teamString.split(/[\u{1F1E6}-\u{1F1FF}]{2}/u)[0].trim();
 }
 
+// Helper function to format rank with proper ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
+function formatRank(rank) {
+  if (!rank || rank === null || rank === undefined) return '';
+  
+  const num = parseInt(rank);
+  if (isNaN(num)) return rank;
+  
+  const lastDigit = num % 10;
+  const lastTwoDigits = num % 100;
+  
+  // Special cases for 11th, 12th, 13th
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
+    return `${num}th`;
+  }
+  
+  // Regular cases
+  if (lastDigit === 1) return `${num}st`;
+  if (lastDigit === 2) return `${num}nd`;
+  if (lastDigit === 3) return `${num}rd`;
+  return `${num}th`;
+}
+
 function BettingOddsPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +82,7 @@ function BettingOddsPage() {
             ...matchup,
             odds: response.data,
             hasOdds: response.data.odds && response.data.odds.length > 0,
+            rankings: response.data.rankings || null,
           };
         } catch (err) {
           return {
@@ -67,11 +90,13 @@ function BettingOddsPage() {
             odds: null,
             hasOdds: false,
             error: true,
+            rankings: null,
           };
         }
       });
 
       const matchupResults = await Promise.all(matchupPromises);
+      console.log('Matchup results with rankings:', matchupResults);
       setGroupMatchups(matchupResults);
     } catch (err) {
       setError('Failed to fetch group matchups');
@@ -153,11 +178,21 @@ function BettingOddsPage() {
                 <div className="matchup-card-header">
                   <div className="matchup-teams-display">
                     <div className="matchup-team-name">
-                      <span className="team-flag">{extractCountryName(matchup.team1)}</span>
+                      <span className="team-flag">
+                        {extractCountryName(matchup.team1)}
+                        {matchup.rankings?.team1 && (
+                          <span className="inline-ranking"> ({formatRank(matchup.rankings.team1.rank)})</span>
+                        )}
+                      </span>
                     </div>
                     <div className="matchup-vs">VS</div>
                     <div className="matchup-team-name">
-                      <span className="team-flag">{extractCountryName(matchup.team2)}</span>
+                      <span className="team-flag">
+                        {extractCountryName(matchup.team2)}
+                        {matchup.rankings?.team2 && (
+                          <span className="inline-ranking"> ({formatRank(matchup.rankings.team2.rank)})</span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -223,6 +258,15 @@ function BettingOddsPage() {
           <div className="team-display team1">
             <h2 className="team-name-large">{extractCountryName(odds?.team1 || team1)}</h2>
             <p className="team-name-full">{odds?.team1 || team1}</p>
+            {odds?.rankings?.team1 && (
+              <div className="fifa-ranking">
+                <span className="ranking-label">FIFA Rank:</span>
+                <span className="ranking-value">#{formatRank(odds.rankings.team1.rank)}</span>
+                {odds.rankings.team1.points && (
+                  <span className="ranking-points">({odds.rankings.team1.points} pts)</span>
+                )}
+              </div>
+            )}
           </div>
           <div className="vs-divider">
             <span className="vs-text">VS</span>
@@ -230,6 +274,15 @@ function BettingOddsPage() {
           <div className="team-display team2">
             <h2 className="team-name-large">{extractCountryName(odds?.team2 || team2)}</h2>
             <p className="team-name-full">{odds?.team2 || team2}</p>
+            {odds?.rankings?.team2 && (
+              <div className="fifa-ranking">
+                <span className="ranking-label">FIFA Rank:</span>
+                <span className="ranking-value">#{formatRank(odds.rankings.team2.rank)}</span>
+                {odds.rankings.team2.points && (
+                  <span className="ranking-points">({odds.rankings.team2.points} pts)</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

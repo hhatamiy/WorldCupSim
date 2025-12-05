@@ -103,6 +103,35 @@
   color: white;
 }
 
+.fifa-ranking {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.ranking-label {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.ranking-value {
+  color: white;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.ranking-points {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 .vs-divider {
   margin: 0 40px;
   display: flex;
@@ -277,8 +306,26 @@
   color: white;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   letter-spacing: -0.3px;
-  display: block;
   line-height: 1.4;
+  display: inline-block;
+}
+
+.inline-ranking {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: normal;
+}
+
+.matchup-ranking {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
+  padding: 3px 10px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
 }
 
 .matchup-vs {
