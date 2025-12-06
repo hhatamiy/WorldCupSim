@@ -268,6 +268,20 @@
   transition: all 0.2s;
   position: relative;
   border: 2px solid transparent;
+  cursor: move;
+  user-select: none;
+}
+
+.third-place-row:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(4px);
+}
+
+.third-place-row.dragging {
+  opacity: 0.5;
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.15);
 }
 
 .third-place-row.qualified {
@@ -339,6 +353,40 @@
 .rank-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.qualification-separator {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.separator-line {
+  flex: 1;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(0, 255, 120, 0.8) 0px,
+    rgba(0, 255, 120, 0.8) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  border: none;
+}
+
+.separator-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00ff78;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 120, 0.3);
 }
 
 .cutoff-line {

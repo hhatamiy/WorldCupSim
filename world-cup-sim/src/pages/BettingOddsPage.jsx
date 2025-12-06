@@ -83,7 +83,7 @@ function BettingOddsPage() {
             params: {
               team1: matchup.team1,
               team2: matchup.team2,
-              type: 'matchup',
+              type: 'group', // Group stage matches should show draws
             },
           });
           return {
@@ -212,31 +212,44 @@ function BettingOddsPage() {
                         <div className="matchup-bookmaker-name">
                           {bookmaker.title || bookmaker.name || `Bookmaker ${bIndex + 1}`}
                         </div>
-                        {bookmaker.markets?.[0]?.outcomes && (
-                          <div className="matchup-outcomes">
-                            {bookmaker.markets[0].outcomes.map((outcome, oIndex) => (
-                              <div key={oIndex} className="matchup-outcome">
-                                <div className="matchup-outcome-left">
-                                  <span className="outcome-label">
-                                    {outcome.name === extractCountryName(matchup.team1) 
-                                      ? extractCountryName(matchup.team1)
-                                      : outcome.name === extractCountryName(matchup.team2)
-                                      ? extractCountryName(matchup.team2)
-                                      : outcome.name}
-                                  </span>
-                                  {outcome.probability !== undefined && (
-                                    <span className="matchup-probability">
-                                      {(outcome.probability * 100).toFixed(1)}%
+                          {bookmaker.markets?.[0]?.outcomes && (
+                            <div className="matchup-outcomes">
+                              {bookmaker.markets[0].outcomes
+                                .filter(outcome => !outcome.isPenalty)
+                                .map((outcome, oIndex) => (
+                                  <div key={oIndex} className="matchup-outcome">
+                                    <div className="matchup-outcome-left">
+                                      <span className="outcome-label">
+                                        {outcome.name === extractCountryName(matchup.team1) 
+                                          ? extractCountryName(matchup.team1)
+                                          : outcome.name === extractCountryName(matchup.team2)
+                                          ? extractCountryName(matchup.team2)
+                                          : outcome.name}
+                                      </span>
+                                      {outcome.probability !== undefined && (
+                                        <span className="matchup-probability">
+                                          {(outcome.probability * 100).toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="outcome-odds">
+                                      {outcome.price > 0 ? `+${outcome.price}` : outcome.price}
                                     </span>
-                                  )}
+                                  </div>
+                                ))}
+                              {/* Show penalty probabilities for knockout matches in group view */}
+                              {bookmaker.isKnockout && bookmaker.markets[0].outcomes.filter(o => o.isPenalty).length > 0 && (
+                                <div className="matchup-penalty-info">
+                                  <span className="penalty-info-text">
+                                    Penalties: {bookmaker.markets[0].outcomes
+                                      .filter(o => o.isPenalty)
+                                      .map(o => `${extractCountryName(o.name)} ${(o.probability * 100).toFixed(1)}%`)
+                                      .join(' | ')}
+                                  </span>
                                 </div>
-                                <span className="outcome-odds">
-                                  {outcome.price > 0 ? `+${outcome.price}` : outcome.price}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          )}
                       </div>
                     ))}
                   </div>
@@ -338,25 +351,60 @@ function BettingOddsPage() {
                           <h4 className="market-title">
                             {market.key === 'h2h' ? 'Match Winner' : market.key}
                           </h4>
-                          {market.outcomes && (
-                            <div className="outcomes">
-                              {market.outcomes.map((outcome, outcomeIndex) => (
-                                <div key={outcomeIndex} className="outcome">
-                                  <div className="outcome-left">
-                                    <span className="outcome-name">{outcome.name}</span>
-                                    {outcome.probability !== undefined && (
-                                      <span className="outcome-probability">
-                                        {(outcome.probability * 100).toFixed(1)}%
+                            {market.outcomes && (
+                              <div className="outcomes">
+                                {market.outcomes.map((outcome, outcomeIndex) => {
+                                  // Skip penalty outcomes in main display - they'll be shown separately
+                                  if (outcome.isPenalty) return null;
+                                  
+                                  return (
+                                    <div key={outcomeIndex} className="outcome">
+                                      <div className="outcome-left">
+                                        <span className="outcome-name">{outcome.name}</span>
+                                        {outcome.probability !== undefined && (
+                                          <span className="outcome-probability">
+                                            {(outcome.probability * 100).toFixed(1)}%
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="outcome-price">
+                                        {outcome.price > 0 ? `+${outcome.price}` : outcome.price}
                                       </span>
-                                    )}
+                                    </div>
+                                  );
+                                })}
+                                {/* Show penalty probabilities separately for knockout matches */}
+                                {bookmaker.isKnockout && market.outcomes.filter(o => o.isPenalty).length > 0 && (
+                                  <div className="penalty-section">
+                                    <div className="penalty-header">
+                                      <span className="penalty-label">Penalty Shootout Probabilities</span>
+                                      {bookmaker.penaltyProbability !== undefined && (
+                                        <span className="penalty-chance">
+                                          {(bookmaker.penaltyProbability * 100).toFixed(1)}% chance of penalties
+                                        </span>
+                                      )}
+                                    </div>
+                                    {market.outcomes
+                                      .filter(outcome => outcome.isPenalty)
+                                      .map((outcome, outcomeIndex) => (
+                                        <div key={`penalty-${outcomeIndex}`} className="outcome penalty-outcome">
+                                          <div className="outcome-left">
+                                            <span className="outcome-name">{outcome.name}</span>
+                                            {outcome.probability !== undefined && (
+                                              <span className="outcome-probability">
+                                                {(outcome.probability * 100).toFixed(1)}%
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="outcome-price">
+                                            {outcome.price > 0 ? `+${outcome.price}` : outcome.price}
+                                          </span>
+                                        </div>
+                                      ))}
                                   </div>
-                                  <span className="outcome-price">
-                                    {outcome.price > 0 ? `+${outcome.price}` : outcome.price}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                )}
+                              </div>
+                            )}
                         </div>
                       ))}
                     </div>

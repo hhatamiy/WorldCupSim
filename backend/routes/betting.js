@@ -305,57 +305,125 @@ function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isK
   const expectedScore1 = 1 / (1 + Math.pow(10, (rating2 - rating1) / 400));
   const expectedScore2 = 1 / (1 + Math.pow(10, (rating1 - rating2) / 400));
   
-  // Add some randomness/variance for draws
-  // Draw probability is higher when teams are closer in strength
-  // For knockout stages, draws are less likely (go to extra time/penalties)
-  const ratingDiff = Math.abs(rating1 - rating2);
-  const drawProbability = isKnockout 
-    ? Math.max(0.05, 0.15 - (ratingDiff / 2000)) // 5-15% for knockout (lower)
-    : Math.max(0.15, 0.30 - (ratingDiff / 2000)); // 15-30% for group stage
-  
-  // Adjust win probabilities to account for draws
-  const adjustedWinProb1 = expectedScore1 * (1 - drawProbability);
-  const adjustedWinProb2 = expectedScore2 * (1 - drawProbability);
-  
-  // Run Monte Carlo simulation
-  let team1Wins = 0;
-  let team2Wins = 0;
-  let draws = 0;
-  
-  for (let i = 0; i < numSimulations; i++) {
-    const random = Math.random();
+  if (isKnockout) {
+    // Knockout stage: no draws, but include penalty shootout probabilities
+    // Probability of going to penalties (extra time draw)
+    const ratingDiff = Math.abs(rating1 - rating2);
+    const penaltyProbability = Math.max(0.10, 0.25 - (ratingDiff / 2000)); // 10-25% chance of penalties
     
-    if (random < adjustedWinProb1) {
-      team1Wins++;
-    } else if (random < adjustedWinProb1 + adjustedWinProb2) {
-      team2Wins++;
-    } else {
-      draws++;
+    // Run Monte Carlo simulation for knockout
+    let team1WinsRegulation = 0;
+    let team2WinsRegulation = 0;
+    let goesToPenalties = 0;
+    let team1WinsPenalties = 0;
+    let team2WinsPenalties = 0;
+    
+    for (let i = 0; i < numSimulations; i++) {
+      const random = Math.random();
+      
+      if (random < expectedScore1 * (1 - penaltyProbability)) {
+        // Team 1 wins in regulation
+        team1WinsRegulation++;
+      } else if (random < (expectedScore1 * (1 - penaltyProbability)) + (expectedScore2 * (1 - penaltyProbability))) {
+        // Team 2 wins in regulation
+        team2WinsRegulation++;
+      } else {
+        // Goes to penalties
+        goesToPenalties++;
+        // Penalty shootout is more random but still favors stronger team slightly
+        const penaltyProb1 = 0.4 + (expectedScore1 - 0.5) * 0.2; // 30-50% range based on strength
+        if (Math.random() < penaltyProb1) {
+          team1WinsPenalties++;
+        } else {
+          team2WinsPenalties++;
+        }
+      }
     }
+    
+    const probTeam1Regulation = team1WinsRegulation / numSimulations;
+    const probTeam2Regulation = team2WinsRegulation / numSimulations;
+    const probPenalties = goesToPenalties / numSimulations;
+    const probTeam1Penalties = team1WinsPenalties / numSimulations;
+    const probTeam2Penalties = team2WinsPenalties / numSimulations;
+    
+    // Total win probabilities (regulation + penalties)
+    const probTeam1Total = probTeam1Regulation + probTeam1Penalties;
+    const probTeam2Total = probTeam2Regulation + probTeam2Penalties;
+    
+    return {
+      team1: {
+        name: 'Team 1',
+        probability: probTeam1Total,
+        odds: probabilityToAmericanOdds(probTeam1Total)
+      },
+      team2: {
+        name: 'Team 2',
+        probability: probTeam2Total,
+        odds: probabilityToAmericanOdds(probTeam2Total)
+      },
+      team1Penalties: {
+        name: 'Team 1 (Penalties)',
+        probability: probTeam1Penalties,
+        odds: probabilityToAmericanOdds(probTeam1Penalties / (probPenalties || 0.01)) // Conditional probability
+      },
+      team2Penalties: {
+        name: 'Team 2 (Penalties)',
+        probability: probTeam2Penalties,
+        odds: probabilityToAmericanOdds(probTeam2Penalties / (probPenalties || 0.01)) // Conditional probability
+      },
+      penaltyProbability: probPenalties,
+      isKnockout: true
+    };
+  } else {
+    // Group stage: includes draws (unchanged)
+    const ratingDiff = Math.abs(rating1 - rating2);
+    const drawProbability = Math.max(0.15, 0.30 - (ratingDiff / 2000)); // 15-30% draw probability
+    
+    // Adjust win probabilities to account for draws
+    const adjustedWinProb1 = expectedScore1 * (1 - drawProbability);
+    const adjustedWinProb2 = expectedScore2 * (1 - drawProbability);
+    
+    // Run Monte Carlo simulation
+    let team1Wins = 0;
+    let team2Wins = 0;
+    let draws = 0;
+    
+    for (let i = 0; i < numSimulations; i++) {
+      const random = Math.random();
+      
+      if (random < adjustedWinProb1) {
+        team1Wins++;
+      } else if (random < adjustedWinProb1 + adjustedWinProb2) {
+        team2Wins++;
+      } else {
+        draws++;
+      }
+    }
+    
+    // Calculate probabilities from simulation results
+    const probTeam1 = team1Wins / numSimulations;
+    const probTeam2 = team2Wins / numSimulations;
+    const probDraw = draws / numSimulations;
+    
+    return {
+      team1: {
+        name: 'Team 1',
+        probability: probTeam1,
+        odds: probabilityToAmericanOdds(probTeam1)
+      },
+      team2: {
+        name: 'Team 2',
+        probability: probTeam2,
+        odds: probabilityToAmericanOdds(probTeam2)
+      },
+      draw: {
+        name: 'Draw',
+        probability: probDraw,
+        odds: probabilityToAmericanOdds(probDraw)
+      },
+      isKnockout: false
+    };
   }
-  
-  // Calculate probabilities from simulation results
-  const probTeam1 = team1Wins / numSimulations;
-  const probTeam2 = team2Wins / numSimulations;
-  const probDraw = draws / numSimulations;
-  
-  return {
-    team1: {
-      name: 'Team 1',
-      probability: probTeam1,
-      odds: probabilityToAmericanOdds(probTeam1)
-    },
-    team2: {
-      name: 'Team 2',
-      probability: probTeam2,
-      odds: probabilityToAmericanOdds(probTeam2)
-    },
-    draw: {
-      name: 'Draw',
-      probability: probDraw,
-      odds: probabilityToAmericanOdds(probDraw)
-    }
-  };
 }
 
 // Soccer sport keys in The Odds API
@@ -435,29 +503,64 @@ router.get('/odds', async (req, res) => {
       
       if (simulatedOdds) {
         // Single bookmaker - Monte Carlo Sportsbook
+        const outcomes = [];
+        
+        if (simulatedOdds.isKnockout) {
+          // Knockout stage: show win probabilities and penalty probabilities
+          outcomes.push(
+            {
+              name: country1,
+              price: simulatedOdds.team1.odds,
+              probability: simulatedOdds.team1.probability
+            },
+            {
+              name: country2,
+              price: simulatedOdds.team2.odds,
+              probability: simulatedOdds.team2.probability
+            },
+            {
+              name: `${country1} (Penalties)`,
+              price: simulatedOdds.team1Penalties.odds,
+              probability: simulatedOdds.team1Penalties.probability,
+              isPenalty: true
+            },
+            {
+              name: `${country2} (Penalties)`,
+              price: simulatedOdds.team2Penalties.odds,
+              probability: simulatedOdds.team2Penalties.probability,
+              isPenalty: true
+            }
+          );
+        } else {
+          // Group stage: show win probabilities and draw
+          outcomes.push(
+            {
+              name: country1,
+              price: simulatedOdds.team1.odds,
+              probability: simulatedOdds.team1.probability
+            },
+            {
+              name: 'Draw',
+              price: simulatedOdds.draw.odds,
+              probability: simulatedOdds.draw.probability
+            },
+            {
+              name: country2,
+              price: simulatedOdds.team2.odds,
+              probability: simulatedOdds.team2.probability
+            }
+          );
+        }
+        
         bookmakers = [{
           title: 'Monte Carlo Sportsbook',
           name: 'Monte Carlo Sportsbook',
           markets: [{
             key: 'h2h',
-            outcomes: [
-              {
-                name: country1,
-                price: simulatedOdds.team1.odds,
-                probability: simulatedOdds.team1.probability
-              },
-              {
-                name: 'Draw',
-                price: simulatedOdds.draw.odds,
-                probability: simulatedOdds.draw.probability
-              },
-              {
-                name: country2,
-                price: simulatedOdds.team2.odds,
-                probability: simulatedOdds.team2.probability
-              }
-            ]
-          }]
+            outcomes: outcomes
+          }],
+          isKnockout: simulatedOdds.isKnockout,
+          penaltyProbability: simulatedOdds.penaltyProbability
         }];
       }
     }

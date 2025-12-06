@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import api from '../api/api';
@@ -117,6 +118,7 @@ function DashboardPage() {
   const [draggedTeam, setDraggedTeam] = useState(null);
   const [currentView, setCurrentView] = useState('groups'); // 'groups', 'third-place', 'bracket'
   const [groupWinnerProbs, setGroupWinnerProbs] = useState({});
+  const [draggedThirdPlaceIndex, setDraggedThirdPlaceIndex] = useState(null);
 
   // Fetch group winner probabilities when groups are loaded
   useEffect(() => {
@@ -216,6 +218,36 @@ function DashboardPage() {
     [newThirdPlace[index], newThirdPlace[targetIndex]] = [newThirdPlace[targetIndex], newThirdPlace[index]];
     
     setThirdPlaceTeams(newThirdPlace);
+  };
+
+  // Drag and drop handlers for third place ranking
+  const handleThirdPlaceDragStart = (e, index) => {
+    setDraggedThirdPlaceIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+  };
+
+  const handleThirdPlaceDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleThirdPlaceDrop = (e, targetIndex) => {
+    e.preventDefault();
+    
+    if (draggedThirdPlaceIndex === null || draggedThirdPlaceIndex === targetIndex) {
+      setDraggedThirdPlaceIndex(null);
+      return;
+    }
+
+    const newThirdPlace = [...thirdPlaceTeams];
+    
+    // Swap teams
+    [newThirdPlace[draggedThirdPlaceIndex], newThirdPlace[targetIndex]] = 
+      [newThirdPlace[targetIndex], newThirdPlace[draggedThirdPlaceIndex]];
+    
+    setThirdPlaceTeams(newThirdPlace);
+    setDraggedThirdPlaceIndex(null);
   };
 
   // Generate knockout bracket with proper FIFA matching algorithm
@@ -512,33 +544,51 @@ function DashboardPage() {
             
             <div className="third-place-table">
               {thirdPlaceTeams.map((item, index) => (
-                <div
-                  key={index}
-                  className={`third-place-row ${index < 8 ? 'qualified' : 'eliminated'}`}
-                >
-                  <div className="rank-number">{index + 1}</div>
-                  <div className="team-info">
-                    <span className="group-label">Group {item.groupName}</span>
-                    <span className="team-name">{item.team.name}</span>
+                <React.Fragment key={index}>
+                  <div
+                    className={`third-place-row ${index < 8 ? 'qualified' : 'eliminated'} ${draggedThirdPlaceIndex === index ? 'dragging' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleThirdPlaceDragStart(e, index)}
+                    onDragOver={handleThirdPlaceDragOver}
+                    onDrop={(e) => handleThirdPlaceDrop(e, index)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="rank-number">{index + 1}</div>
+                    <div className="team-info">
+                      <span className="group-label">Group {item.groupName}</span>
+                      <span className="team-name">{item.team.name}</span>
+                    </div>
+                    <div className="rank-controls">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveThirdPlaceTeam(index, 'up');
+                        }}
+                        disabled={index === 0}
+                        className="rank-btn"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveThirdPlaceTeam(index, 'down');
+                        }}
+                        disabled={index === thirdPlaceTeams.length - 1}
+                        className="rank-btn"
+                      >
+                        ▼
+                      </button>
+                    </div>
                   </div>
-                  <div className="rank-controls">
-                    <button
-                      onClick={() => moveThirdPlaceTeam(index, 'up')}
-                      disabled={index === 0}
-                      className="rank-btn"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => moveThirdPlaceTeam(index, 'down')}
-                      disabled={index === thirdPlaceTeams.length - 1}
-                      className="rank-btn"
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  {index === 7 && <div className="cutoff-line">Qualification Line</div>}
-                </div>
+                  {index === 7 && (
+                    <div className="qualification-separator">
+                      <div className="separator-line"></div>
+                      <div className="separator-label">Qualification Line</div>
+                      <div className="separator-line"></div>
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
 
