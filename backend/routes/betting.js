@@ -4,6 +4,41 @@ import axios from 'axios';
 
 const router = express.Router();
 
+// Cache for probabilities - will be populated on first request
+const probabilityCache = {
+  groupWinners: {},
+  matchOdds: {}
+};
+
+// Seeded random number generator for deterministic Monte Carlo simulations
+class SeededRandom {
+  constructor(seed) {
+    this.seed = seed;
+  }
+  
+  random() {
+    // Linear congruential generator
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    return this.seed / 233280;
+  }
+}
+
+// Helper function to create a deterministic seed from team names
+function createSeedFromTeams(teams) {
+  let seed = 0;
+  const teamsString = teams.join('|');
+  for (let i = 0; i < teamsString.length; i++) {
+    seed = ((seed << 5) - seed) + teamsString.charCodeAt(i);
+    seed = seed & seed; // Convert to 32-bit integer
+  }
+  return Math.abs(seed);
+}
+
+// Helper function to create a cache key from teams array
+function getCacheKey(teams) {
+  return teams.slice().sort().join('|');
+}
+
 // Helper function to extract country name from team string (removes emoji and extra text)
 function extractCountryName(teamString) {
   if (!teamString) return '';
@@ -183,6 +218,10 @@ function normalizeTeamName(countryName) {
 
 // Monte Carlo simulation to calculate group winner probabilities
 function simulateGroupWinner(groupTeams, numSimulations = 10000) {
+  // Create deterministic seed from team names
+  const seed = createSeedFromTeams(groupTeams);
+  const rng = new SeededRandom(seed);
+  
   // Get rankings for all teams in the group
   const teamRankings = groupTeams.map(teamName => {
     const countryName = extractCountryName(teamName);
@@ -224,20 +263,20 @@ function simulateGroupWinner(groupTeams, numSimulations = 10000) {
         const team1 = teamRankings[i];
         const team2 = teamRankings[j];
         
-        const matchOdds = simulateMatchOdds(team1.points, team2.points, 1, false);
+        const matchOdds = simulateMatchOdds(team1.points, team2.points, 1, false, rng);
         if (!matchOdds) continue;
 
-        const random = Math.random();
+        const random = rng.random();
         if (random < matchOdds.team1.probability) {
           // Team 1 wins
           simResults[team1.name].points += 3;
-          simResults[team1.name].goalDifference += Math.floor(Math.random() * 3) + 1;
-          simResults[team2.name].goalDifference -= Math.floor(Math.random() * 3) + 1;
+          simResults[team1.name].goalDifference += Math.floor(rng.random() * 3) + 1;
+          simResults[team2.name].goalDifference -= Math.floor(rng.random() * 3) + 1;
         } else if (random < matchOdds.team1.probability + matchOdds.team2.probability) {
           // Team 2 wins
           simResults[team2.name].points += 3;
-          simResults[team2.name].goalDifference += Math.floor(Math.random() * 3) + 1;
-          simResults[team1.name].goalDifference -= Math.floor(Math.random() * 3) + 1;
+          simResults[team2.name].goalDifference += Math.floor(rng.random() * 3) + 1;
+          simResults[team1.name].goalDifference -= Math.floor(rng.random() * 3) + 1;
         } else {
           // Draw
           simResults[team1.name].points += 1;
@@ -290,9 +329,15 @@ function probabilityToAmericanOdds(probability) {
 }
 
 // Monte Carlo simulation to generate betting odds
-function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isKnockout = false) {
+function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isKnockout = false, rng = null) {
   if (!team1Points || !team2Points) {
     return null;
+  }
+
+  // If no RNG provided, create a seeded one based on team points
+  if (!rng) {
+    const seed = Math.abs(team1Points * 1000 + team2Points);
+    rng = new SeededRandom(seed);
   }
 
   // Convert FIFA points to Elo-style rating (normalize to reasonable range)
@@ -319,7 +364,7 @@ function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isK
     let team2WinsPenalties = 0;
     
     for (let i = 0; i < numSimulations; i++) {
-      const random = Math.random();
+      const random = rng.random();
       
       if (random < expectedScore1 * (1 - penaltyProbability)) {
         // Team 1 wins in regulation
@@ -332,7 +377,7 @@ function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isK
         goesToPenalties++;
         // Penalty shootout is more random but still favors stronger team slightly
         const penaltyProb1 = 0.4 + (expectedScore1 - 0.5) * 0.2; // 30-50% range based on strength
-        if (Math.random() < penaltyProb1) {
+        if (rng.random() < penaltyProb1) {
           team1WinsPenalties++;
         } else {
           team2WinsPenalties++;
@@ -389,7 +434,7 @@ function simulateMatchOdds(team1Points, team2Points, numSimulations = 10000, isK
     let draws = 0;
     
     for (let i = 0; i < numSimulations; i++) {
-      const random = Math.random();
+      const random = rng.random();
       
       if (random < adjustedWinProb1) {
         team1Wins++;
@@ -441,6 +486,48 @@ const SOCCER_SPORT_KEYS = [
   'soccer_mexico_ligamx',            // Liga MX
 ];
 
+// POST endpoint to clear the probability cache (e.g., when FIFA rankings are updated)
+router.post('/clear-cache', async (req, res) => {
+  try {
+    probabilityCache.groupWinners = {};
+    probabilityCache.matchOdds = {};
+    console.log('Probability cache cleared');
+    
+    return res.json({
+      message: 'Probability cache cleared successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({ 
+      message: 'Failed to clear cache', 
+      error: error.message 
+    });
+  }
+});
+
+// GET cache statistics
+router.get('/cache-stats', async (req, res) => {
+  try {
+    return res.json({
+      groupWinners: {
+        count: Object.keys(probabilityCache.groupWinners).length,
+        keys: Object.keys(probabilityCache.groupWinners)
+      },
+      matchOdds: {
+        count: Object.keys(probabilityCache.matchOdds).length,
+        keys: Object.keys(probabilityCache.matchOdds)
+      }
+    });
+  } catch (error) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({ 
+      message: 'Failed to get cache stats', 
+      error: error.message 
+    });
+  }
+});
+
 // GET group winner probabilities
 router.get('/group-winner', async (req, res) => {
   try {
@@ -455,11 +542,28 @@ router.get('/group-winner', async (req, res) => {
       return res.status(400).json({ message: 'Must provide exactly 4 teams' });
     }
 
+    // Create cache key from teams
+    const cacheKey = getCacheKey(teamArray);
+    
+    // Check if we have cached probabilities for this group
+    if (probabilityCache.groupWinners[cacheKey]) {
+      console.log(`Returning cached group winner probabilities for: ${cacheKey}`);
+      return res.json({
+        groupName: groupName,
+        probabilities: probabilityCache.groupWinners[cacheKey],
+        cached: true
+      });
+    }
+
+    // Calculate and cache the probabilities
+    console.log(`Calculating new group winner probabilities for: ${cacheKey}`);
     const groupWinnerProbs = simulateGroupWinner(teamArray);
+    probabilityCache.groupWinners[cacheKey] = groupWinnerProbs;
     
     return res.json({
       groupName: groupName,
-      probabilities: groupWinnerProbs
+      probabilities: groupWinnerProbs,
+      cached: false
     });
   } catch (error) {
     console.error('Error calculating group winner probabilities:', error);
@@ -499,7 +603,21 @@ router.get('/odds', async (req, res) => {
     let bookmakers = [];
     
     if (ranking1 && ranking2 && ranking1.points && ranking2.points) {
-      simulatedOdds = simulateMatchOdds(ranking1.points, ranking2.points, 10000, isKnockout);
+      // Create cache key for this matchup
+      const matchCacheKey = `${getCacheKey([country1, country2])}_${isKnockout ? 'knockout' : 'group'}`;
+      
+      // Check cache first
+      if (probabilityCache.matchOdds[matchCacheKey]) {
+        console.log(`Returning cached match odds for: ${matchCacheKey}`);
+        simulatedOdds = probabilityCache.matchOdds[matchCacheKey];
+      } else {
+        // Calculate and cache
+        console.log(`Calculating new match odds for: ${matchCacheKey}`);
+        const seed = createSeedFromTeams([country1, country2]);
+        const rng = new SeededRandom(seed);
+        simulatedOdds = simulateMatchOdds(ranking1.points, ranking2.points, 10000, isKnockout, rng);
+        probabilityCache.matchOdds[matchCacheKey] = simulatedOdds;
+      }
       
       if (simulatedOdds) {
         // Single bookmaker - Monte Carlo Sportsbook
