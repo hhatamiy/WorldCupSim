@@ -22,7 +22,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect to login for 401 errors from auth endpoints
+    // Don't redirect for betting API errors (they might be quota/rate limit issues)
+    if (error.response?.status === 401 && error.config?.url?.includes('/auth')) {
       localStorage.removeItem('jwt');
       window.location.href = '/login';
     }

@@ -3,44 +3,106 @@ import { useNavigate } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import './DashboardPage.css';
 
-// 48 teams organized by pots
-const POTS = {
-  pot1: [
-    'United States 🇺🇸', 'Mexico 🇲🇽', 'Canada 🇨🇦', 'Spain 🇪🇸',
-    'Argentina 🇦🇷', 'France 🇫🇷', 'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Brazil 🇧🇷',
-    'Portugal 🇵🇹', 'Netherlands 🇳🇱', 'Belgium 🇧🇪', 'Germany 🇩🇪'
-  ],
-  pot2: [
-    'Croatia 🇭🇷', 'Morocco 🇲🇦', 'Colombia 🇨🇴', 'Uruguay 🇺🇾',
-    'Switzerland 🇨🇭', 'Japan 🇯🇵', 'Senegal 🇸🇳', 'Iran 🇮🇷',
-    'South Korea 🇰🇷', 'Ecuador 🇪🇨', 'Austria 🇦🇹', 'Australia 🇦🇺'
-  ],
-  pot3: [
-    'Norway 🇳🇴', 'Panama 🇵🇦', 'Egypt 🇪🇬', 'Algeria 🇩🇿',
-    'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Paraguay 🇵🇾', 'Tunisia 🇹🇳', 'Ivory Coast 🇨🇮',
-    'Uzbekistan 🇺🇿', 'Qatar 🇶🇦', 'Saudi Arabia 🇸🇦', 'South Africa 🇿🇦'
-  ],
-  pot4: [
-    'Jordan 🇯🇴', 'Cape Verde 🇨🇻', 'Ghana 🇬🇭', 'Curaçao 🇨🇼',
-    'Haiti 🇭🇹', 'New Zealand 🇳🇿', 'Italy 🇮🇹', 'Ukraine 🇺🇦',
-    'Turkey 🇹🇷', 'Czech Republic 🇨🇿', 'Iraq 🇮🇶', 'DR Congo 🇨🇩'
-  ]
-};
-
+// Actual FIFA World Cup 2026 Groups (as drawn)
 function initializeGroups() {
-  const groups = {};
-  const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-  
-  groupNames.forEach((groupName, index) => {
-    groups[groupName] = {
+  const groups = {
+    A: {
       teams: [
-        { name: POTS.pot1[index], pot: 1, position: 1 },
-        { name: POTS.pot2[index], pot: 2, position: 2 },
-        { name: POTS.pot3[index], pot: 3, position: 3 },
-        { name: POTS.pot4[index], pot: 4, position: 4 }
+        { name: 'Mexico 🇲🇽', pot: 1, position: 1 },
+        { name: 'South Africa 🇿🇦', pot: 2, position: 2 },
+        { name: 'South Korea 🇰🇷', pot: 3, position: 3 },
+        { name: 'Denmark 🇩🇰', pot: 4, position: 4 }
       ]
-    };
-  });
+    },
+    B: {
+      teams: [
+        { name: 'Canada 🇨🇦', pot: 1, position: 1 },
+        { name: 'Italy 🇮🇹', pot: 2, position: 2 },
+        { name: 'Qatar 🇶🇦', pot: 3, position: 3 },
+        { name: 'Switzerland 🇨🇭', pot: 4, position: 4 }
+      ]
+    },
+    C: {
+      teams: [
+        { name: 'Brazil 🇧🇷', pot: 1, position: 1 },
+        { name: 'Morocco 🇲🇦', pot: 2, position: 2 },
+        { name: 'Haiti 🇭🇹', pot: 3, position: 3 },
+        { name: 'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿', pot: 4, position: 4 }
+      ]
+    },
+    D: {
+      teams: [
+        { name: 'United States 🇺🇸', pot: 1, position: 1 },
+        { name: 'Paraguay 🇵🇾', pot: 2, position: 2 },
+        { name: 'Australia 🇦🇺', pot: 3, position: 3 },
+        { name: 'Turkey 🇹🇷', pot: 4, position: 4 }
+      ]
+    },
+    E: {
+      teams: [
+        { name: 'Germany 🇩🇪', pot: 1, position: 1 },
+        { name: 'Curaçao 🇨🇼', pot: 2, position: 2 },
+        { name: 'Ivory Coast 🇨🇮', pot: 3, position: 3 },
+        { name: 'Ecuador 🇪🇨', pot: 4, position: 4 }
+      ]
+    },
+    F: {
+      teams: [
+        { name: 'Netherlands 🇳🇱', pot: 1, position: 1 },
+        { name: 'Japan 🇯🇵', pot: 2, position: 2 },
+        { name: 'Ukraine 🇺🇦', pot: 3, position: 3 },
+        { name: 'Tunisia 🇹🇳', pot: 4, position: 4 }
+      ]
+    },
+    G: {
+      teams: [
+        { name: 'Belgium 🇧🇪', pot: 1, position: 1 },
+        { name: 'Egypt 🇪🇬', pot: 2, position: 2 },
+        { name: 'Iran 🇮🇷', pot: 3, position: 3 },
+        { name: 'New Zealand 🇳🇿', pot: 4, position: 4 }
+      ]
+    },
+    H: {
+      teams: [
+        { name: 'Spain 🇪🇸', pot: 1, position: 1 },
+        { name: 'Cape Verde 🇨🇻', pot: 2, position: 2 },
+        { name: 'Saudi Arabia 🇸🇦', pot: 3, position: 3 },
+        { name: 'Uruguay 🇺🇾', pot: 4, position: 4 }
+      ]
+    },
+    I: {
+      teams: [
+        { name: 'France 🇫🇷', pot: 1, position: 1 },
+        { name: 'Senegal 🇸🇳', pot: 2, position: 2 },
+        { name: 'Iraq 🇮🇶', pot: 3, position: 3 },
+        { name: 'Norway 🇳🇴', pot: 4, position: 4 }
+      ]
+    },
+    J: {
+      teams: [
+        { name: 'Argentina 🇦🇷', pot: 1, position: 1 },
+        { name: 'Algeria 🇩🇿', pot: 2, position: 2 },
+        { name: 'Austria 🇦🇹', pot: 3, position: 3 },
+        { name: 'Jordan 🇯🇴', pot: 4, position: 4 }
+      ]
+    },
+    K: {
+      teams: [
+        { name: 'Portugal 🇵🇹', pot: 1, position: 1 },
+        { name: 'DR Congo 🇨🇩', pot: 2, position: 2 },
+        { name: 'Uzbekistan 🇺🇿', pot: 3, position: 3 },
+        { name: 'Colombia 🇨🇴', pot: 4, position: 4 }
+      ]
+    },
+    L: {
+      teams: [
+        { name: 'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', pot: 1, position: 1 },
+        { name: 'Croatia 🇭🇷', pot: 2, position: 2 },
+        { name: 'Ghana 🇬🇭', pot: 3, position: 3 },
+        { name: 'Panama 🇵🇦', pot: 4, position: 4 }
+      ]
+    }
+  };
   
   return groups;
 }
@@ -278,6 +340,51 @@ function DashboardPage() {
     }
   };
 
+  // Navigate to betting odds page for a group
+  const handleGroupClick = (groupName) => {
+    const groupTeams = groups[groupName].teams;
+    if (groupTeams.length === 4) {
+      // Pass all teams to show all 6 matchups in the group
+      navigate('/betting-odds', {
+        state: {
+          type: 'group',
+          groupName: groupName,
+          allTeams: groupTeams.map(team => team.name),
+        },
+      });
+    }
+  };
+
+  // Navigate to betting odds page for a knockout matchup
+  const handleMatchupClick = (side, roundIndex, matchupIndex) => {
+    if (!knockoutBracket) return;
+    
+    let matchup;
+    if (side === 'final') {
+      matchup = knockoutBracket.final[matchupIndex];
+    } else {
+      matchup = knockoutBracket[side][roundIndex][matchupIndex];
+    }
+
+    if (matchup.team1 && matchup.team2) {
+      const roundNames = {
+        0: 'Round of 32',
+        1: 'Round of 16',
+        2: 'Quarterfinals',
+        3: 'Semifinals',
+      };
+      
+      navigate('/betting-odds', {
+        state: {
+          team1: matchup.team1,
+          team2: matchup.team2,
+          type: 'matchup',
+          round: roundNames[roundIndex] || 'Final',
+        },
+      });
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -322,7 +429,12 @@ function DashboardPage() {
             
             <div className="groups-grid">
               {Object.keys(groups).map((groupName) => (
-                <div key={groupName} className="group-card">
+                <div 
+                  key={groupName} 
+                  className="group-card clickable-group"
+                  onClick={() => handleGroupClick(groupName)}
+                  title="Click to view betting odds for this group"
+                >
                   <h3>Group {groupName}</h3>
                   <div className="group-teams">
                     {groups[groupName].teams.map((team, index) => (
@@ -333,6 +445,7 @@ function DashboardPage() {
                         onDragStart={(e) => handleDragStart(e, groupName, index)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, groupName, index)}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <span className="position-number">{index + 1}.</span>
                         <span className="team-name">{team.name}</span>
@@ -426,12 +539,21 @@ function DashboardPage() {
                       <div className="round-matchups">
                         {round.map((matchup, matchupIndex) => (
                           <div key={matchupIndex} className="matchup-wrapper">
-                            <div className="matchup">
+                            <div 
+                              className={`matchup ${matchup.team1 && matchup.team2 ? 'clickable-matchup' : ''}`}
+                              onClick={() => {
+                                if (matchup.team1 && matchup.team2) {
+                                  handleMatchupClick('left', roundIndex, matchupIndex);
+                                }
+                              }}
+                              title={matchup.team1 && matchup.team2 ? "Click to view betting odds" : ""}
+                            >
                               <div
                                 className={`team ${!matchup.team1 ? 'empty' : ''} ${
                                   isBracketTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
                                 } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   if (isBracketTeamClickable('left', roundIndex, matchupIndex)) {
                                     handleBracketTeamClick('left', roundIndex, matchupIndex, 'team1');
                                   }
@@ -444,7 +566,8 @@ function DashboardPage() {
                                 className={`team ${!matchup.team2 ? 'empty' : ''} ${
                                   isBracketTeamClickable('left', roundIndex, matchupIndex) ? 'clickable' : ''
                                 } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   if (isBracketTeamClickable('left', roundIndex, matchupIndex)) {
                                     handleBracketTeamClick('left', roundIndex, matchupIndex, 'team2');
                                   }
@@ -469,14 +592,23 @@ function DashboardPage() {
                 <div className="round-label">Final</div>
                 {knockoutBracket.final.map((matchup, matchupIndex) => (
                   <div key={matchupIndex} className="matchup-wrapper final-wrapper">
-                    <div className="matchup final-matchup">
+                    <div 
+                      className={`matchup final-matchup ${matchup.team1 && matchup.team2 ? 'clickable-matchup' : ''}`}
+                      onClick={() => {
+                        if (matchup.team1 && matchup.team2) {
+                          handleMatchupClick('final', 0, matchupIndex);
+                        }
+                      }}
+                      title={matchup.team1 && matchup.team2 ? "Click to view betting odds" : ""}
+                    >
                       <div
                         className={`team ${!matchup.team1 ? 'empty' : ''} ${
                           isBracketTeamClickable('final', 0, matchupIndex) ? 'clickable' : ''
                         } ${matchup.winner === matchup.team1 ? 'winner' : ''} ${
                           champion === matchup.team1 ? 'champion' : ''
                         }`}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (isBracketTeamClickable('final', 0, matchupIndex)) {
                             handleBracketTeamClick('final', 0, matchupIndex, 'team1');
                           }
@@ -491,7 +623,8 @@ function DashboardPage() {
                         } ${matchup.winner === matchup.team2 ? 'winner' : ''} ${
                           champion === matchup.team2 ? 'champion' : ''
                         }`}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (isBracketTeamClickable('final', 0, matchupIndex)) {
                             handleBracketTeamClick('final', 0, matchupIndex, 'team2');
                           }
@@ -529,12 +662,21 @@ function DashboardPage() {
                               {roundIndex < knockoutBracket.right.length - 1 && (
                                 <div className="connector connector-left"></div>
                               )}
-                              <div className="matchup">
+                              <div 
+                                className={`matchup ${matchup.team1 && matchup.team2 ? 'clickable-matchup' : ''}`}
+                                onClick={() => {
+                                  if (matchup.team1 && matchup.team2) {
+                                    handleMatchupClick('right', roundIndex, matchupIndex);
+                                  }
+                                }}
+                                title={matchup.team1 && matchup.team2 ? "Click to view betting odds" : ""}
+                              >
                                 <div
                                   className={`team ${!matchup.team1 ? 'empty' : ''} ${
                                     isBracketTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
                                   } ${matchup.winner === matchup.team1 ? 'winner' : ''}`}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (isBracketTeamClickable('right', roundIndex, matchupIndex)) {
                                       handleBracketTeamClick('right', roundIndex, matchupIndex, 'team1');
                                     }
@@ -547,7 +689,8 @@ function DashboardPage() {
                                   className={`team ${!matchup.team2 ? 'empty' : ''} ${
                                     isBracketTeamClickable('right', roundIndex, matchupIndex) ? 'clickable' : ''
                                   } ${matchup.winner === matchup.team2 ? 'winner' : ''}`}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (isBracketTeamClickable('right', roundIndex, matchupIndex)) {
                                       handleBracketTeamClick('right', roundIndex, matchupIndex, 'team2');
                                     }

@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import DrawSimulatorPage from './pages/DrawSimulatorPage';
 import DrawResultPage from './pages/DrawResultPage';
+import BettingOddsPage from './pages/BettingOddsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -34,6 +35,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DrawResultPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/betting-odds"
+          element={
+            <ProtectedRoute>
+              <BettingOddsPage />
             </ProtectedRoute>
           }
         />
