@@ -124,21 +124,42 @@ function generateScore(team1Prob, team2Prob, drawProb, isKnockout = false) {
   const random = Math.random();
   
   if (isKnockout) {
-    // Knockout: no draws, but can go to penalties
-    if (random < team1Prob) {
-      // Team 1 wins - generate realistic score
+    // Knockout: Allow 15-20% chance of going to penalties
+    const penaltyChance = 0.15 + Math.random() * 0.05; // 15-20% chance
+    
+    // Adjust probabilities to account for penalties
+    const adjustedTeam1Prob = team1Prob * (1 - penaltyChance);
+    const adjustedTeam2Prob = team2Prob * (1 - penaltyChance);
+    
+    if (random < adjustedTeam1Prob) {
+      // Team 1 wins in regular/extra time
       const goals1 = Math.floor(Math.random() * 3) + 1; // 1-3 goals
       const goals2 = Math.floor(Math.random() * goals1); // Less than team1
       return { team1: goals1, team2: goals2, isDraw: false, isPenalties: false };
-    } else if (random < team1Prob + team2Prob) {
-      // Team 2 wins
+    } else if (random < adjustedTeam1Prob + adjustedTeam2Prob) {
+      // Team 2 wins in regular/extra time
       const goals2 = Math.floor(Math.random() * 3) + 1;
       const goals1 = Math.floor(Math.random() * goals2);
       return { team1: goals1, team2: goals2, isDraw: false, isPenalties: false };
     } else {
-      // Goes to penalties (extra time draw)
+      // Goes to penalties (draw after extra time)
+      // Generate a realistic draw score (0-0, 1-1, 2-2)
+      const drawScore = Math.floor(Math.random() * 3); // 0, 1, or 2
+      
+      // Generate penalty shootout score (3-5 goals each, winner has more)
       const penaltyWinner = Math.random() < team1Prob / (team1Prob + team2Prob) ? 1 : 2;
-      return { team1: 0, team2: 0, isDraw: true, isPenalties: true, penaltyWinner };
+      const winnerPens = Math.floor(Math.random() * 3) + 3; // 3-5 penalties
+      const loserPens = Math.floor(Math.random() * winnerPens); // Less than winner
+      
+      return { 
+        team1: drawScore, 
+        team2: drawScore, 
+        isDraw: true, 
+        isPenalties: true, 
+        penaltyWinner,
+        penaltyScore1: penaltyWinner === 1 ? winnerPens : loserPens,
+        penaltyScore2: penaltyWinner === 2 ? winnerPens : loserPens
+      };
     }
   } else {
     // Group stage: can have draws
@@ -219,11 +240,26 @@ function SimulatorPage() {
 
         const matches = [];
 
-        // Simulate all 6 matches in the group (4 choose 2 = 6)
-        for (let i = 0; i < teamNames.length; i++) {
-          for (let j = i + 1; j < teamNames.length; j++) {
-            const team1 = teamNames[i];
-            const team2 = teamNames[j];
+        // FIFA 2026 World Cup official match order for group stage
+        // Match 1: Position 1 vs Position 2
+        // Match 2: Position 3 vs Position 4
+        // Match 3: Position 4 vs Position 2
+        // Match 4: Position 1 vs Position 3
+        // Match 5: Position 4 vs Position 1
+        // Match 6: Position 2 vs Position 3
+        const matchOrder = [
+          [0, 1], // 1 vs 2
+          [2, 3], // 3 vs 4
+          [3, 1], // 4 vs 2
+          [0, 2], // 1 vs 3
+          [3, 0], // 4 vs 1
+          [1, 2]  // 2 vs 3
+        ];
+
+        // Simulate all 6 matches in FIFA's official order
+        for (const [idx1, idx2] of matchOrder) {
+          const team1 = teamNames[idx1];
+          const team2 = teamNames[idx2];
 
             try {
               // Get match probabilities from API
@@ -342,7 +378,6 @@ function SimulatorPage() {
               });
             }
           }
-        }
 
         // Calculate goal differences
         Object.keys(standings).forEach(team => {
@@ -364,8 +399,8 @@ function SimulatorPage() {
       setGroupMatches(newMatches);
       setSimulatedGroups(true);
 
-      // Automatically advance to third place ranking
-      advanceToThirdPlace(newStandings);
+      // Calculate third place rankings (but don't navigate away)
+      advanceToThirdPlace(newStandings, false);
     } catch (error) {
       console.error('Error simulating group stage:', error);
     } finally {
@@ -374,7 +409,7 @@ function SimulatorPage() {
   };
 
   // Advance teams to third place ranking
-  const advanceToThirdPlace = (standings = groupStandings) => {
+  const advanceToThirdPlace = (standings = groupStandings, navigateAway = true) => {
     const groupNames = Object.keys(groups);
     const thirdPlace = groupNames.map(groupName => {
       const groupStanding = standings[groupName];
@@ -405,7 +440,9 @@ function SimulatorPage() {
     });
 
     setThirdPlaceTeams(thirdPlace);
-    setCurrentView('third-place');
+    if (navigateAway) {
+      setCurrentView('third-place');
+    }
   };
 
   // Generate knockout bracket
@@ -586,8 +623,11 @@ function SimulatorPage() {
         
         matchup.score1 = score.team1;
         matchup.score2 = score.team2;
-
+        matchup.isPenalties = score.isPenalties;
+        
         if (score.isPenalties) {
+          matchup.penaltyScore1 = score.penaltyScore1;
+          matchup.penaltyScore2 = score.penaltyScore2;
           matchup.winner = score.penaltyWinner === 1 ? matchup.team1 : matchup.team2;
         } else if (score.team1 > score.team2) {
           matchup.winner = matchup.team1;
@@ -663,14 +703,6 @@ function SimulatorPage() {
           >
             Group Stage
           </button>
-          {thirdPlaceTeams.length > 0 && (
-            <button
-              onClick={() => setCurrentView('third-place')}
-              className={`view-btn ${currentView === 'third-place' ? 'active' : ''}`}
-            >
-              3rd Place Ranking
-            </button>
-          )}
           {knockoutBracket && (
             <button
               onClick={() => setCurrentView('bracket')}
@@ -781,6 +813,57 @@ function SimulatorPage() {
                 );
               })}
             </div>
+
+            {/* Third Place Rankings - shown at bottom of group stage when simulated */}
+            {simulatedGroups && thirdPlaceTeams.length > 0 && (
+              <div className="third-place-section-inline">
+                <h2>Third Place Teams Ranking</h2>
+                <p className="instruction-text">Top 8 teams will advance to the knockout stage</p>
+                
+                <div className="third-place-table">
+                  {thirdPlaceTeams.map((item, index) => (
+                    <React.Fragment key={index}>
+                      <div
+                        className={`third-place-row ${index < 8 ? 'qualified' : 'eliminated'}`}
+                      >
+                        <div className="rank-number">{index + 1}</div>
+                        <div className="team-info">
+                          <span className="group-label">Group {item.groupName}</span>
+                          <span className="team-name">{item.team.name}</span>
+                        </div>
+                        <div className="team-stats">
+                          <div className="stat-item">
+                            <span className="stat-label">Pts:</span>
+                            <span className="stat-value">{item.points}</span>
+                          </div>
+                          <div className="stat-item">
+                            <span className="stat-label">GD:</span>
+                            <span className="stat-value">{item.goalDifference >= 0 ? '+' : ''}{item.goalDifference}</span>
+                          </div>
+                          <div className="stat-item">
+                            <span className="stat-label">GF:</span>
+                            <span className="stat-value">{item.goalsScored}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {index === 7 && (
+                        <div className="qualification-separator">
+                          <div className="separator-line"></div>
+                          <div className="separator-label">Qualification Line</div>
+                          <div className="separator-line"></div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                <div className="action-section">
+                  <button onClick={generateKnockoutBracket} className="advance-btn">
+                    Generate Knockout Bracket
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -880,7 +963,9 @@ function SimulatorPage() {
                               {simulatedKnockout && matchup.score1 !== null && (
                                 <div className="match-score">
                                   {matchup.score1} - {matchup.score2}
-                                  {matchup.score1 === 0 && matchup.score2 === 0 && matchup.winner && ' (P)'}
+                                  {matchup.isPenalties && (
+                                    <span className="penalty-notation"> ({matchup.penaltyScore1}-{matchup.penaltyScore2} pens)</span>
+                                  )}
                                 </div>
                               )}
                               <div className="vs">vs</div>
@@ -911,7 +996,9 @@ function SimulatorPage() {
                       {simulatedKnockout && matchup.score1 !== null && (
                         <div className="match-score">
                           {matchup.score1} - {matchup.score2}
-                          {matchup.score1 === 0 && matchup.score2 === 0 && matchup.winner && ' (P)'}
+                          {matchup.isPenalties && (
+                            <span className="penalty-notation"> ({matchup.penaltyScore1}-{matchup.penaltyScore2} pens)</span>
+                          )}
                         </div>
                       )}
                       <div className="vs">vs</div>
@@ -955,7 +1042,9 @@ function SimulatorPage() {
                                 {simulatedKnockout && matchup.score1 !== null && (
                                   <div className="match-score">
                                     {matchup.score1} - {matchup.score2}
-                                    {matchup.score1 === 0 && matchup.score2 === 0 && matchup.winner && ' (P)'}
+                                    {matchup.isPenalties && (
+                                      <span className="penalty-notation"> ({matchup.penaltyScore1}-{matchup.penaltyScore2} pens)</span>
+                                    )}
                                   </div>
                                 )}
                                 <div className="vs">vs</div>

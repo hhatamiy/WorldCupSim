@@ -306,6 +306,13 @@
   margin: 0 auto;
 }
 
+.third-place-section-inline {
+  max-width: 1000px;
+  margin: 60px auto 0;
+  padding-top: 40px;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+}
+
 .third-place-table {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 15px;
@@ -692,6 +699,14 @@
   font-weight: 700;
   color: #00c6ff;
   padding: 4px 0;
+}
+
+.penalty-notation {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffd700;
+  display: block;
+  margin-top: 2px;
 }
 
 .vs {

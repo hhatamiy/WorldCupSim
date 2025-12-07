@@ -65,16 +65,26 @@ function BettingOddsPage() {
       setLoading(true);
       setError('');
       
-      // Generate all 6 possible matchups in a group (4 choose 2 = 6)
-      const matchups = [];
-      for (let i = 0; i < allTeams.length; i++) {
-        for (let j = i + 1; j < allTeams.length; j++) {
-          matchups.push({
-            team1: allTeams[i],
-            team2: allTeams[j],
-          });
-        }
-      }
+      // FIFA 2026 World Cup official match order for group stage
+      // Match 1: Position 1 vs Position 2
+      // Match 2: Position 3 vs Position 4
+      // Match 3: Position 4 vs Position 2
+      // Match 4: Position 1 vs Position 3
+      // Match 5: Position 4 vs Position 1
+      // Match 6: Position 2 vs Position 3
+      const matchOrder = [
+        [0, 1], // 1 vs 2
+        [2, 3], // 3 vs 4
+        [3, 1], // 4 vs 2
+        [0, 2], // 1 vs 3
+        [3, 0], // 4 vs 1
+        [1, 2]  // 2 vs 3
+      ];
+      
+      const matchups = matchOrder.map(([idx1, idx2]) => ({
+        team1: allTeams[idx1],
+        team2: allTeams[idx2],
+      }));
 
       // Fetch odds for each matchup in parallel
       const matchupPromises = matchups.map(async (matchup) => {
