@@ -39,8 +39,8 @@ function RegisterPage() {
       // Store JWT token
       localStorage.setItem('jwt', response.data.token);
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // Navigate to predictor
+      navigate('/predictor');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -51,7 +51,7 @@ function RegisterPage() {
   const handleAdminBypass = () => {
     // Set a dummy token to bypass authentication
     localStorage.setItem('jwt', 'admin-bypass-token');
-    navigate('/dashboard');
+    navigate('/predictor');
   };
 
   return (

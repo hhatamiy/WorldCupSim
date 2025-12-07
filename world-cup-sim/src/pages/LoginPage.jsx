@@ -24,8 +24,8 @@ function LoginPage() {
       // Store JWT token
       localStorage.setItem('jwt', response.data.token);
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // Navigate to predictor
+      navigate('/predictor');
     } catch (err) {
       console.error('Login error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
@@ -43,7 +43,7 @@ function LoginPage() {
   const handleAdminBypass = () => {
     // Set a dummy token to bypass authentication
     localStorage.setItem('jwt', 'admin-bypass-token');
-    navigate('/dashboard');
+    navigate('/predictor');
   };
 
   return (

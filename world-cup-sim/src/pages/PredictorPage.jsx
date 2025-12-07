@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import api from '../api/api';
-import './DashboardPage.css';
+import './PredictorPage.css';
 
 // Actual FIFA World Cup 2026 Groups (as drawn)
 function initializeGroups() {
@@ -109,7 +109,7 @@ function initializeGroups() {
   return groups;
 }
 
-function DashboardPage() {
+function PredictorPage() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState(() => initializeGroups());
   const [thirdPlaceTeams, setThirdPlaceTeams] = useState([]);
@@ -449,10 +449,16 @@ function DashboardPage() {
   };
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>World Cup 2026 Simulator</h1>
+    <div className="predictor-container">
+      <header className="predictor-header">
+        <h1>World Cup 2026 Predictor</h1>
         <div className="header-actions">
+          <button
+            onClick={() => navigate('/simulator')}
+            className="nav-btn"
+          >
+            Simulator
+          </button>
           <button
             onClick={() => setCurrentView('groups')}
             className={`view-btn ${currentView === 'groups' ? 'active' : ''}`}
@@ -805,4 +811,4 @@ function DashboardPage() {
   );
 }
 
-export default DashboardPage;
+export default PredictorPage;

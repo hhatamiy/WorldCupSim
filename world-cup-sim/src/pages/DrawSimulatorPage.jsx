@@ -56,8 +56,8 @@ function DrawSimulatorPage() {
     <div className="draw-simulator-container">
       <header className="simulator-header">
         <h1>World Cup Draw Simulator</h1>
-        <button onClick={() => navigate('/dashboard')} className="back-btn">
-          Back to Dashboard
+        <button onClick={() => navigate('/predictor')} className="back-btn">
+          Back to Predictor
         </button>
       </header>
 

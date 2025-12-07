@@ -1,11 +1,11 @@
-.dashboard-container {
+.predictor-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #0a1a2a, #003b5c);
   color: white;
   padding-bottom: 40px;
 }
 
-.dashboard-header {
+.predictor-header {
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -18,7 +18,7 @@
   gap: 15px;
 }
 
-.dashboard-header h1 {
+.predictor-header h1 {
   font-size: 28px;
   font-weight: 700;
   margin: 0;
@@ -28,6 +28,24 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: 2px solid rgba(0, 255, 120, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(0, 255, 120, 0.2);
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: rgba(0, 255, 120, 0.3);
+  border-color: rgba(0, 255, 120, 0.7);
+  transform: translateY(-2px);
 }
 
 .view-btn {
@@ -799,12 +817,12 @@
 }
 
 @media (max-width: 768px) {
-  .dashboard-header {
+  .predictor-header {
     flex-direction: column;
     align-items: flex-start;
   }
   
-  .dashboard-header h1 {
+  .predictor-header h1 {
     font-size: 24px;
   }
   

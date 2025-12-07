@@ -27,7 +27,7 @@ function DrawResultPage() {
   };
 
   const handleBack = () => {
-    navigate('/dashboard');
+    navigate('/predictor');
   };
 
   if (loading) {
@@ -43,7 +43,7 @@ function DrawResultPage() {
       <div className="draw-result-container">
         <div className="error-message">{error || 'Draw not found'}</div>
         <button onClick={handleBack} className="back-btn">
-          Back to Dashboard
+          Back to Predictor
         </button>
       </div>
     );
@@ -57,7 +57,7 @@ function DrawResultPage() {
       <header className="result-header">
         <h1>{draw.name || 'Draw Results'}</h1>
         <button onClick={handleBack} className="back-btn">
-          Back to Dashboard
+          Back to Predictor
         </button>
       </header>
 

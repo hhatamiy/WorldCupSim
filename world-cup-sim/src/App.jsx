@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
+import PredictorPage from './pages/PredictorPage';
 import DrawSimulatorPage from './pages/DrawSimulatorPage';
 import DrawResultPage from './pages/DrawResultPage';
 import BettingOddsPage from './pages/BettingOddsPage';
+import SimulatorPage from './pages/SimulatorPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -15,10 +16,10 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
-          path="/dashboard"
+          path="/predictor"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <PredictorPage />
             </ProtectedRoute>
           }
         />
@@ -46,7 +47,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/simulator"
+          element={
+            <ProtectedRoute>
+              <SimulatorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/predictor" replace />} />
       </Routes>
     </BrowserRouter>
   );
