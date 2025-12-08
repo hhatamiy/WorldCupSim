@@ -548,6 +548,18 @@ function PredictorPage() {
     }
   };
 
+  const glazeBracket = async (e) => {
+    e.stopPropagation();
+    const bracket = { groups, thirdPlaceTeams, knockoutBracket, champion };
+    try {
+      const res = await api.post('/glaze/bracket', { bracket });
+      alert(res.data.script);
+    } catch (err) {
+      console.error('Error glazing bracket');
+      return;
+    }
+  };
+
   return (
     <div className="predictor-container">
       <header className="predictor-header">
@@ -580,6 +592,13 @@ function PredictorPage() {
             >
               Knockout Bracket
             </button>
+          )}
+          {champion && (
+            <button 
+              onClick={glazeBracket}
+              className={`view-btn ${currentView === 'bracket' ? 'active' : ''}`}
+              >
+                Glaze my bracket!</button> 
           )}
           <button onClick={handleReset} className="reset-btn">
             Reset
