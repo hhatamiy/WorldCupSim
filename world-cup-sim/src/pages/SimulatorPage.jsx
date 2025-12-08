@@ -1038,11 +1038,11 @@ function SimulatorPage() {
                         {roundIndex === 2 && 'Quarterfinals'}
                         {roundIndex === 3 && 'Semifinals'}
                       </div>
-                      <div className="round-matchups">
+                      <div className={`round-matchups-${roundIndex + 1}`}>
                         {round.map((matchup, matchupIndex) => (
                           <div key={matchupIndex} className="matchup-wrapper">
                             <div className="matchup">
-                              <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner' : ''}`}>
+                              <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team2 ? 'wait' : ''}`}>
                                 {matchup.team1 || 'TBD'}
                               </div>
                               {simulatedKnockout && matchup.score1 !== null && (
@@ -1054,13 +1054,10 @@ function SimulatorPage() {
                                 </div>
                               )}
                               <div className="vs">vs</div>
-                              <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner' : ''}`}>
+                              <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team1 ? 'wait' : ''}`}>
                                 {matchup.team2 || 'TBD'}
                               </div>
                             </div>
-                            {roundIndex < knockoutBracket.left.length - 1 && (
-                              <div className="connector connector-right"></div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -1075,7 +1072,7 @@ function SimulatorPage() {
                 {knockoutBracket.final.map((matchup, matchupIndex) => (
                   <div key={matchupIndex} className="matchup-wrapper final-wrapper">
                     <div className="matchup final-matchup">
-                      <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner' : ''} ${champion === matchup.team1 ? 'champion' : ''}`}>
+                      <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team2 ? 'wait' : ''} ${champion === matchup.team1 ? 'champion' : ''}`}>
                         {matchup.team1 || 'TBD'}
                       </div>
                       {simulatedKnockout && matchup.score1 !== null && (
@@ -1087,7 +1084,7 @@ function SimulatorPage() {
                         </div>
                       )}
                       <div className="vs">vs</div>
-                      <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner' : ''} ${champion === matchup.team2 ? 'champion' : ''}`}>
+                      <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team1 ? 'wait' : ''} ${champion === matchup.team2 ? 'champion' : ''}`}>
                         {matchup.team2 || 'TBD'}
                       </div>
                     </div>
@@ -1112,16 +1109,13 @@ function SimulatorPage() {
                         {roundIndex === 2 && 'Quarterfinals'}
                         {roundIndex === 3 && 'Semifinals'}
                       </div>
-                      <div className="round-matchups">
+                      <div className={`round-matchups-${roundIndex + 1}`}>
                         {[...round].reverse().map((matchup, reversedIndex) => {
                           const matchupIndex = round.length - 1 - reversedIndex;
                           return (
                             <div key={matchupIndex} className="matchup-wrapper">
-                              {roundIndex < knockoutBracket.right.length - 1 && (
-                                <div className="connector connector-left"></div>
-                              )}
                               <div className="matchup">
-                                <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner' : ''}`}>
+                                <div className={`team ${!matchup.team1 ? 'empty' : ''} ${matchup.winner === matchup.team1 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team2 ? 'wait' : ''}`}>
                                   {matchup.team1 || 'TBD'}
                                 </div>
                                 {simulatedKnockout && matchup.score1 !== null && (
@@ -1133,7 +1127,7 @@ function SimulatorPage() {
                                   </div>
                                 )}
                                 <div className="vs">vs</div>
-                                <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner' : ''}`}>
+                                <div className={`team ${!matchup.team2 ? 'empty' : ''} ${matchup.winner === matchup.team2 ? 'winner set' : matchup.winner ? 'loser set' : matchup.team1 ? 'wait' : ''}`}>
                                   {matchup.team2 || 'TBD'}
                                 </div>
                               </div>

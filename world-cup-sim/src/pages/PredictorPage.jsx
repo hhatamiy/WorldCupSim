@@ -672,9 +672,6 @@ function PredictorPage() {
                                 {matchup.team2 || 'TBD'}
                               </div>
                             </div>
-                            {roundIndex < knockoutBracket.left.length - 1 && (
-                              <div className="connector connector-right"></div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -755,9 +752,6 @@ function PredictorPage() {
                           const matchupIndex = round.length - 1 - reversedIndex;
                           return (
                             <div key={matchupIndex} className="matchup-wrapper">
-                              {roundIndex < knockoutBracket.right.length - 1 && (
-                                <div className="connector connector-left"></div>
-                              )}
                               <div 
                                 className={`matchup ${matchup.team1 && matchup.team2 ? 'clickable-matchup' : ''}`}
                                 onClick={() => {
