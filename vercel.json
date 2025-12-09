@@ -1,9 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "buildCommand": "cd world-cup-sim && npm install && npm run build",
+  "outputDirectory": "world-cup-sim/dist",
   "framework": "vite",
-  "rootDirectory": "world-cup-sim",
   "rewrites": [
     {
       "source": "/(.*)",
