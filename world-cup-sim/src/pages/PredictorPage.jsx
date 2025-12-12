@@ -1,9 +1,49 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import api from '../api/api';
 import './PredictorPage.css';
+
+// Team alternatives mapping for unqualified teams
+const TEAM_ALTERNATIVES = {
+  'Italy 🇮🇹': ['Italy 🇮🇹', 'Northern Ireland ☘️', 'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'Bosnia and Herzegovina 🇧🇦'],
+  'Ukraine 🇺🇦': ['Ukraine 🇺🇦', 'Sweden 🇸🇪', 'Poland 🇵🇱', 'Albania 🇦🇱'],
+  'Turkey 🇹🇷': ['Turkey 🇹🇷', 'Romania 🇷🇴', 'Slovakia 🇸🇰', 'Kosovo 🇽🇰'],
+  'Denmark 🇩🇰': ['Denmark 🇩🇰', 'North Macedonia 🇲🇰', 'Czechia 🇨🇿', 'Ireland 🇮🇪'],
+  'Iraq 🇮🇶': ['Iraq 🇮🇶', 'Bolivia 🇧🇴', 'Suriname 🇸🇷'],
+  'DR Congo 🇨🇩': ['DR Congo 🇨🇩', 'Jamaica 🇯🇲', 'New Caledonia 🇳🇨']
+};
+
+// Helper to check if a team has alternatives (either is a key or is in any alternatives list)
+function hasAlternatives(teamName) {
+  if (TEAM_ALTERNATIVES.hasOwnProperty(teamName)) {
+    return true;
+  }
+  // Check if the team is in any of the alternative lists
+  for (const alternatives of Object.values(TEAM_ALTERNATIVES)) {
+    if (alternatives.includes(teamName)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Helper to get alternatives for a team (finds the original team key if current team is an alternative)
+function getAlternatives(teamName) {
+  // If it's a direct key, return its alternatives
+  if (TEAM_ALTERNATIVES.hasOwnProperty(teamName)) {
+    return TEAM_ALTERNATIVES[teamName];
+  }
+  // Otherwise, find which original team this belongs to
+  for (const [originalTeam, alternatives] of Object.entries(TEAM_ALTERNATIVES)) {
+    if (alternatives.includes(teamName)) {
+      return alternatives;
+    }
+  }
+  return [teamName];
+}
 
 // Actual FIFA World Cup 2026 Groups (as drawn)
 function initializeGroups() {
@@ -117,6 +157,66 @@ function extractCountryName(teamString) {
     .replace(/🏴[󠁁-󠁿]*/gu, '')
     .trim();
   return cleaned;
+}
+
+// Helper function to get country flag gradient colors
+function getCountryGradient(teamString) {
+  const countryName = extractCountryName(teamString);
+  
+  // Map country names to their flag color gradients
+  const flagColors = {
+    'Mexico': 'linear-gradient(135deg, rgba(0, 99, 65, 0.7), rgba(206, 17, 38, 0.7))', // Green to Red
+    'South Africa': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 0, 0.7), rgba(0, 0, 0, 0.7), rgba(0, 128, 0, 0.7))', // Red, Yellow, Black, Green
+    'South Korea': 'linear-gradient(135deg, rgba(0, 0, 128, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 0, 0, 0.7))', // Blue, White, Red
+    'Denmark': 'linear-gradient(135deg, rgba(198, 12, 48, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Canada': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Italy': 'linear-gradient(90deg, rgba(0, 146, 70, 0.7), rgba(255, 255, 255, 0.7), rgba(206, 43, 55, 0.7))', // Green, White, Red
+    'Qatar': 'linear-gradient(135deg, rgba(138, 21, 56, 0.7), rgba(255, 255, 255, 0.7))', // Maroon and White
+    'Switzerland': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Brazil': 'linear-gradient(135deg, rgba(0, 149, 69, 0.7), rgba(254, 223, 0, 0.7), rgba(0, 39, 118, 0.7))', // Green, Yellow, Blue
+    'Morocco': 'linear-gradient(135deg, rgba(193, 39, 45, 0.7), rgba(0, 98, 60, 0.7))', // Red and Green
+    'Haiti': 'linear-gradient(90deg, rgba(0, 32, 91, 0.7), rgba(214, 40, 40, 0.7))', // Blue and Red
+    'Scotland': 'linear-gradient(135deg, rgba(0, 102, 204, 0.7), rgba(255, 255, 255, 0.7))', // Blue and White
+    'United States': 'linear-gradient(90deg, rgba(187, 19, 62, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 38, 100, 0.7))', // Red, White, Blue
+    'Paraguay': 'linear-gradient(135deg, rgba(213, 43, 30, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 56, 168, 0.7))', // Red, White, Blue
+    'Australia': 'linear-gradient(135deg, rgba(0, 51, 102, 0.7), rgba(255, 204, 0, 0.7), rgba(0, 102, 204, 0.7))', // Blue, Gold, Blue
+    'Turkey': 'linear-gradient(135deg, rgba(227, 10, 23, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Germany': 'linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(221, 0, 0, 0.7), rgba(255, 206, 0, 0.7))', // Black, Red, Gold
+    'Curaçao': 'linear-gradient(135deg, rgba(0, 102, 204, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 215, 0, 0.7))', // Blue, White, Gold
+    'Ivory Coast': 'linear-gradient(90deg, rgba(252, 209, 22, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 158, 96, 0.7))', // Orange, White, Green
+    'Ecuador': 'linear-gradient(135deg, rgba(255, 221, 0, 0.7), rgba(0, 122, 51, 0.7), rgba(237, 28, 36, 0.7))', // Yellow, Green, Red
+    'Netherlands': 'linear-gradient(90deg, rgba(174, 28, 40, 0.7), rgba(255, 255, 255, 0.7), rgba(33, 70, 139, 0.7))', // Red, White, Blue
+    'Japan': 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(188, 0, 45, 0.7))', // White and Red
+    'Ukraine': 'linear-gradient(90deg, rgba(0, 87, 183, 0.7), rgba(255, 215, 0, 0.7))', // Blue and Yellow
+    'Tunisia': 'linear-gradient(135deg, rgba(231, 0, 19, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Belgium': 'linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(237, 41, 57, 0.7), rgba(250, 224, 66, 0.7))', // Black, Red, Yellow
+    'Egypt': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0.7))', // Red, White, Black
+    'Iran': 'linear-gradient(135deg, rgba(218, 0, 21, 0.7), rgba(255, 255, 255, 0.7), rgba(35, 159, 64, 0.7))', // Red, White, Green
+    'New Zealand': 'linear-gradient(135deg, rgba(0, 0, 128, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 0, 0, 0.7))', // Blue, White, Red
+    'Spain': 'linear-gradient(90deg, rgba(170, 21, 27, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 209, 0, 0.7))', // Red, White, Yellow
+    'Cape Verde': 'linear-gradient(90deg, rgba(0, 102, 204, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 215, 0, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 102, 204, 0.7), rgba(255, 215, 0, 0.7))', // Blue, White, Gold stripes
+    'Saudi Arabia': 'linear-gradient(135deg, rgba(0, 98, 64, 0.7), rgba(255, 255, 255, 0.7))', // Green and White
+    'Uruguay': 'linear-gradient(90deg, rgba(0, 56, 168, 0.7), rgba(255, 255, 255, 0.7))', // Blue and White
+    'France': 'linear-gradient(90deg, rgba(0, 35, 149, 0.7), rgba(255, 255, 255, 0.7), rgba(237, 41, 57, 0.7))', // Blue, White, Red
+    'Senegal': 'linear-gradient(90deg, rgba(0, 158, 96, 0.7), rgba(252, 209, 22, 0.7), rgba(237, 28, 36, 0.7))', // Green, Yellow, Red
+    'Iraq': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0.7))', // Red, White, Black
+    'Norway': 'linear-gradient(135deg, rgba(186, 12, 47, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 32, 91, 0.7))', // Red, White, Blue
+    'Argentina': 'linear-gradient(90deg, rgba(116, 172, 223, 0.7), rgba(255, 255, 255, 0.7))', // Light Blue and White
+    'Algeria': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 102, 51, 0.7))', // Red, White, Green
+    'Austria': 'linear-gradient(90deg, rgba(237, 41, 57, 0.7), rgba(255, 255, 255, 0.7), rgba(237, 41, 57, 0.7))', // Red, White, Red
+    'Jordan': 'linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 102, 51, 0.7), rgba(206, 17, 38, 0.7))', // Black, White, Green, Red
+    'Portugal': 'linear-gradient(90deg, rgba(0, 102, 0, 0.7), rgba(255, 0, 0, 0.7))', // Green and Red
+    'DR Congo': 'linear-gradient(135deg, rgba(0, 122, 94, 0.7), rgba(255, 209, 0, 0.7), rgba(220, 20, 60, 0.7))', // Blue, Yellow, Red
+    'Uzbekistan': 'linear-gradient(90deg, rgba(0, 132, 61, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 209, 0, 0.7), rgba(0, 132, 61, 0.7))', // Green, White, Gold
+    'Colombia': 'linear-gradient(90deg, rgba(252, 209, 22, 0.7), rgba(0, 56, 168, 0.7), rgba(206, 17, 38, 0.7))', // Yellow, Blue, Red
+    'England': 'linear-gradient(90deg, rgba(207, 20, 43, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Croatia': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 71, 171, 0.7))', // Red, White, Blue
+    'Ghana': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 215, 0, 0.7), rgba(0, 122, 94, 0.7))', // Red, Gold, Green
+    'Panama': 'linear-gradient(135deg, rgba(218, 37, 29, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 76, 151, 0.7))', // Red, White, Blue
+  };
+  
+  // Return the gradient for the country, or a default gradient if not found
+  return flagColors[countryName] || 'linear-gradient(135deg, rgba(100, 100, 100, 0.5), rgba(150, 150, 150, 0.5))';
 }
 
 // Helper function to get full country name with flag (for final match)
@@ -242,6 +342,8 @@ function PredictorPage() {
   const [draggedTeam, setDraggedTeam] = useState(null);
   const [currentView, setCurrentView] = useState(initialView);
   const [groupWinnerProbs, setGroupWinnerProbs] = useState({});
+  const [openDropdown, setOpenDropdown] = useState(null); // Format: 'groupName-index'
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -331,6 +433,66 @@ function PredictorPage() {
     setKnockoutBracket(null);
     setChampion(null);
   };
+
+  // Handle team replacement from dropdown
+  const handleTeamReplacement = (groupName, teamIndex, newTeamName) => {
+    const newGroups = { ...groups };
+    const group = newGroups[groupName];
+    
+    // Preserve pot and position
+    const currentTeam = group.teams[teamIndex];
+    group.teams[teamIndex] = {
+      name: newTeamName,
+      pot: currentTeam.pot,
+      position: currentTeam.position
+    };
+
+    setGroups(newGroups);
+    
+    // Reset knockout bracket and related state when teams change
+    setThirdPlaceTeams([]);
+    setSelectedThirdPlaceGroups(new Set());
+    setKnockoutBracket(null);
+    setChampion(null);
+    
+    // Close dropdown after selection
+    setOpenDropdown(null);
+  };
+
+  // Toggle dropdown
+  const toggleDropdown = (groupName, teamIndex, e) => {
+    e.stopPropagation();
+    const dropdownKey = `${groupName}-${teamIndex}`;
+    
+    if (openDropdown === dropdownKey) {
+      setOpenDropdown(null);
+    } else {
+      // Calculate position for fixed dropdown - position it right below the button
+      const button = e.currentTarget;
+      const rect = button.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 2,
+        left: rect.left + window.scrollX
+      });
+      setOpenDropdown(dropdownKey);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdown && !event.target.closest('.team-dropdown-container') && !event.target.closest('.team-dropdown-menu')) {
+        setOpenDropdown(null);
+      }
+    };
+
+    if (openDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [openDropdown]);
 
   // Advance teams to third place ranking
   const advanceToThirdPlace = () => {
@@ -674,10 +836,27 @@ function PredictorPage() {
                   <div className="group-teams">
                     {groups[groupName].teams.map((team, index) => {
                       const teamProb = groupWinnerProbs[groupName]?.[team.name];
+                      const teamHasAlternatives = hasAlternatives(team.name);
+                      const teamAlternatives = teamHasAlternatives ? getAlternatives(team.name) : [];
+                      // Position-based border colors: 1-2 = green, 3 = yellow, 4 = blue
+                      let positionGradient;
+                      if (index === 0 || index === 1) {
+                        // Top two teams: green
+                        positionGradient = 'linear-gradient(135deg, rgba(0, 255, 120, 0.8), rgba(0, 200, 100, 0.8))';
+                      } else if (index === 2) {
+                        // Third place: yellow
+                        positionGradient = 'linear-gradient(135deg, rgba(255, 215, 0, 0.8), rgba(255, 200, 0, 0.8))';
+                      } else {
+                        // Last place: blue (default)
+                        positionGradient = 'linear-gradient(135deg, rgba(0, 200, 255, 0.8), rgba(0, 150, 255, 0.8))';
+                      }
                       return (
                         <div
                           key={index}
-                          className={`group-team pos-${index + 1}`}
+                          className="group-team"
+                          style={{
+                            '--position-gradient': positionGradient
+                          }}
                           draggable
                           onDragStart={(e) => handleDragStart(e, groupName, index)}
                           onDragOver={handleDragOver}
@@ -686,6 +865,40 @@ function PredictorPage() {
                         >
                           <span className="position-number">{index + 1}.</span>
                           <span className="team-name">{team.name}</span>
+                          {teamHasAlternatives && currentView === 'groups' && (
+                            <div className="team-dropdown-container">
+                              <button
+                                className="team-dropdown-toggle"
+                                onClick={(e) => toggleDropdown(groupName, index, e)}
+                                title="Select alternative team"
+                              >
+                                <span className="dropdown-arrow">▼</span>
+                              </button>
+                              {openDropdown === `${groupName}-${index}` && ReactDOM.createPortal(
+                                <div 
+                                  className="team-dropdown-menu"
+                                  style={{
+                                    top: `${dropdownPosition.top}px`,
+                                    left: `${dropdownPosition.left}px`
+                                  }}
+                                >
+                                  {teamAlternatives.map((altTeam) => (
+                                    <div
+                                      key={altTeam}
+                                      className={`team-dropdown-item ${team.name === altTeam ? 'selected' : ''}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTeamReplacement(groupName, index, altTeam);
+                                      }}
+                                    >
+                                      {altTeam}
+                                    </div>
+                                  ))}
+                                </div>,
+                                document.body
+                              )}
+                            </div>
+                          )}
                           {teamProb ? (
                             <span className="group-winner-prob">
                               {(teamProb.probability * 100).toFixed(1)}%

@@ -1,9 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import api from '../api/api';
 import './SimulatorPage.css';
+
+// Team alternatives mapping for unqualified teams
+const TEAM_ALTERNATIVES = {
+  'Italy 🇮🇹': ['Italy 🇮🇹', 'Northern Ireland ☘️', 'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'Bosnia and Herzegovina 🇧🇦'],
+  'Ukraine 🇺🇦': ['Ukraine 🇺🇦', 'Sweden 🇸🇪', 'Poland 🇵🇱', 'Albania 🇦🇱'],
+  'Turkey 🇹🇷': ['Turkey 🇹🇷', 'Romania 🇷🇴', 'Slovakia 🇸🇰', 'Kosovo 🇽🇰'],
+  'Denmark 🇩🇰': ['Denmark 🇩🇰', 'North Macedonia 🇲🇰', 'Czechia 🇨🇿', 'Ireland 🇮🇪'],
+  'Iraq 🇮🇶': ['Iraq 🇮🇶', 'Bolivia 🇧🇴', 'Suriname 🇸🇷'],
+  'DR Congo 🇨🇩': ['DR Congo 🇨🇩', 'Jamaica 🇯🇲', 'New Caledonia 🇳🇨']
+};
+
+// Helper to check if a team has alternatives (either is a key or is in any alternatives list)
+function hasAlternatives(teamName) {
+  if (TEAM_ALTERNATIVES.hasOwnProperty(teamName)) {
+    return true;
+  }
+  // Check if the team is in any of the alternative lists
+  for (const alternatives of Object.values(TEAM_ALTERNATIVES)) {
+    if (alternatives.includes(teamName)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Helper to get alternatives for a team (finds the original team key if current team is an alternative)
+function getAlternatives(teamName) {
+  // If it's a direct key, return its alternatives
+  if (TEAM_ALTERNATIVES.hasOwnProperty(teamName)) {
+    return TEAM_ALTERNATIVES[teamName];
+  }
+  // Otherwise, find which original team this belongs to
+  for (const [originalTeam, alternatives] of Object.entries(TEAM_ALTERNATIVES)) {
+    if (alternatives.includes(teamName)) {
+      return alternatives;
+    }
+  }
+  return [teamName];
+}
 
 // Actual FIFA World Cup 2026 Groups (as drawn)
 function initializeGroups() {
@@ -387,6 +427,8 @@ function SimulatorPage() {
   const [simulating, setSimulating] = useState(false);
   const [simulatedGroups, setSimulatedGroups] = useState(false);
   const [simulatedKnockout, setSimulatedKnockout] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null); // Format: 'groupName-index'
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
 
   const handleReset = () => {
@@ -400,6 +442,69 @@ function SimulatorPage() {
     setSimulatedGroups(false);
     setSimulatedKnockout(false);
   };
+
+  // Handle team replacement from dropdown
+  const handleTeamReplacement = (groupName, teamIndex, newTeamName) => {
+    const newGroups = { ...groups };
+    const group = newGroups[groupName];
+    
+    // Preserve pot and position
+    const currentTeam = group.teams[teamIndex];
+    group.teams[teamIndex] = {
+      name: newTeamName,
+      pot: currentTeam.pot,
+      position: currentTeam.position
+    };
+
+    setGroups(newGroups);
+    
+    // Reset all simulation state when teams change
+    setGroupStandings({});
+    setGroupMatches({});
+    setThirdPlaceTeams([]);
+    setKnockoutBracket(null);
+    setChampion(null);
+    setSimulatedGroups(false);
+    setSimulatedKnockout(false);
+    
+    // Close dropdown after selection
+    setOpenDropdown(null);
+  };
+
+  // Toggle dropdown
+  const toggleDropdown = (groupName, teamIndex, e) => {
+    e.stopPropagation();
+    const dropdownKey = `${groupName}-${teamIndex}`;
+    
+    if (openDropdown === dropdownKey) {
+      setOpenDropdown(null);
+    } else {
+      // Calculate position for fixed dropdown - position it right below the button
+      const button = e.currentTarget;
+      const rect = button.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 2,
+        left: rect.left + window.scrollX
+      });
+      setOpenDropdown(dropdownKey);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdown && !event.target.closest('.team-dropdown-container') && !event.target.closest('.team-dropdown-menu')) {
+        setOpenDropdown(null);
+      }
+    };
+
+    if (openDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [openDropdown]);
 
   // Simulate all group stage matches
   const simulateGroupStage = async () => {
@@ -1011,13 +1116,51 @@ function SimulatorPage() {
                     )}
                     {!simulatedGroups && (
                       <div className="group-teams">
-                        {groups[groupName].teams.map((team, index) => (
-                          <div key={index} className={`group-team pot-${team.pot}`}>
-                            <span className="position-number">{index + 1}.</span>
-                            <span className="team-name">{getCountryCode(team.name)}</span>
-                            <span className="pot-badge">Pot {team.pot}</span>
-                          </div>
-                        ))}
+                        {groups[groupName].teams.map((team, index) => {
+                          const teamHasAlternatives = hasAlternatives(team.name);
+                          const teamAlternatives = teamHasAlternatives ? getAlternatives(team.name) : [];
+                          return (
+                            <div key={index} className={`group-team pot-${team.pot}`}>
+                              <span className="position-number">{index + 1}.</span>
+                              <span className="team-name">{getCountryCode(team.name)}</span>
+                              {teamHasAlternatives && currentView === 'groups' && !simulatedGroups && (
+                                <div className="team-dropdown-container">
+                                  <button
+                                    className="team-dropdown-toggle"
+                                    onClick={(e) => toggleDropdown(groupName, index, e)}
+                                    title="Select alternative team"
+                                  >
+                                    <span className="dropdown-arrow">▼</span>
+                                  </button>
+                                  {openDropdown === `${groupName}-${index}` && ReactDOM.createPortal(
+                                    <div 
+                                      className="team-dropdown-menu"
+                                      style={{
+                                        top: `${dropdownPosition.top}px`,
+                                        left: `${dropdownPosition.left}px`
+                                      }}
+                                    >
+                                      {teamAlternatives.map((altTeam) => (
+                                        <div
+                                          key={altTeam}
+                                          className={`team-dropdown-item ${team.name === altTeam ? 'selected' : ''}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTeamReplacement(groupName, index, altTeam);
+                                          }}
+                                        >
+                                          {altTeam}
+                                        </div>
+                                      ))}
+                                    </div>,
+                                    document.body
+                                  )}
+                                </div>
+                              )}
+                              <span className="pot-badge">Pot {team.pot}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {simulatedGroups && matches.length > 0 && (

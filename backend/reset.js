@@ -7,9 +7,7 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables
-const projectRoot = join(__dirname, '..');
-dotenv.config({ path: join(projectRoot, 'main.env') });
+// Load environment variables from backend/.env
 dotenv.config({ path: join(__dirname, '.env') });
 
 // Import models to ensure they're registered

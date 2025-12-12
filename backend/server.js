@@ -10,10 +10,8 @@ import bettingRoutes from './routes/betting.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from main.env in project root, fallback to .env
-const projectRoot = join(__dirname, '..');
-dotenv.config({ path: join(projectRoot, 'main.env') });
-dotenv.config({ path: join(__dirname, '.env') }); // Fallback to backend/.env if it exists
+// Load environment variables from backend/.env
+dotenv.config({ path: join(__dirname, '.env') });
 const app = express();
 
 app.use(cors());
