@@ -285,14 +285,6 @@ function PredictorPage() {
     fetchGroupWinnerProbs();
   }, [groups]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    navigate('/login');
-  };
-
-  const handleAccount = () => {
-    navigate('/account-settings');
-  };
 
   const handleReset = () => {
     setGroups(initializeGroups());
@@ -624,17 +616,6 @@ function PredictorPage() {
     }
   };
 
-  const glazeBracket = async (e) => {
-    e.stopPropagation();
-    const bracket = { groups, thirdPlaceTeams, knockoutBracket, champion };
-    try {
-      const res = await api.post('/glaze/bracket', { bracket });
-      alert(res.data.script);
-    } catch (error) {
-      console.error('Error glazing bracket:', error);
-      return;
-    }
-  };
 
   return (
     <div className="predictor-container">
@@ -669,21 +650,8 @@ function PredictorPage() {
               Knockout Bracket
             </button>
           )}
-          {champion && (
-            <button 
-              onClick={glazeBracket}
-              className={`view-btn ${currentView === 'bracket' ? 'active' : ''}`}
-              >
-                Glaze my bracket!</button> 
-          )}
           <button onClick={handleReset} className="reset-btn">
             Reset
-          </button>
-          <button onClick={handleAccount} className="account-btn">
-            My Account
-          </button>
-          <button onClick={handleLogout} className="logout-btn">
-            Logout
           </button>
         </div>
       </header>

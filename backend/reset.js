@@ -13,7 +13,6 @@ dotenv.config({ path: join(projectRoot, 'main.env') });
 dotenv.config({ path: join(__dirname, '.env') });
 
 // Import models to ensure they're registered
-import User from './models/User.js';
 import Team from './models/Team.js';
 import Match from './models/Match.js';
 import Bracket from './models/Bracket.js';

@@ -5,9 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from './db.js';
-import authRoutes from './routes/auth.js';
 import bettingRoutes from './routes/betting.js';
-import glazeRoutes from './routes/glaze.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,9 +23,7 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.use('/auth', authRoutes);
 app.use('/api/betting', bettingRoutes);
-app.use('/glaze', glazeRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
