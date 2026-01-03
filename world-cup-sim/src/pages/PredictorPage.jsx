@@ -411,9 +411,14 @@ function PredictorPage() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, targetGroupName) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    // Only allow drop if it's within the same group
+    if (draggedTeam && draggedTeam.groupName === targetGroupName) {
+      e.dataTransfer.dropEffect = 'move';
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+    }
   };
 
   const handleDrop = (e, targetGroupName, targetTeamIndex) => {
@@ -421,14 +426,19 @@ function PredictorPage() {
     
     if (!draggedTeam) return;
 
+    // Only allow drops within the same group
+    if (draggedTeam.groupName !== targetGroupName) {
+      setDraggedTeam(null);
+      return;
+    }
+
     const newGroups = { ...groups };
     const sourceGroup = newGroups[draggedTeam.groupName];
-    const targetGroup = newGroups[targetGroupName];
 
-    // Swap teams
+    // Swap teams within the same group
     const temp = sourceGroup.teams[draggedTeam.teamIndex];
-    sourceGroup.teams[draggedTeam.teamIndex] = targetGroup.teams[targetTeamIndex];
-    targetGroup.teams[targetTeamIndex] = temp;
+    sourceGroup.teams[draggedTeam.teamIndex] = sourceGroup.teams[targetTeamIndex];
+    sourceGroup.teams[targetTeamIndex] = temp;
 
     setGroups(newGroups);
     setDraggedTeam(null);
@@ -890,7 +900,7 @@ function PredictorPage() {
                           }}
                           draggable
                           onDragStart={(e) => handleDragStart(e, groupName, index)}
-                          onDragOver={handleDragOver}
+                          onDragOver={(e) => handleDragOver(e, groupName)}
                           onDrop={(e) => handleDrop(e, groupName, index)}
                           onClick={(e) => e.stopPropagation()}
                         >
