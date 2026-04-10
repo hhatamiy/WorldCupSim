@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
 import api from '../api/api';
 import { getGroupMatchInfo, getKnockoutMatchInfo, getKnockoutMatchInfoById } from '../data/matchSchedule';
 import './PredictorPage.css';
 
+const PREDICTOR_STATE_VERSION = 2;
+
 // Team alternatives mapping for unqualified teams
-const TEAM_ALTERNATIVES = {
+/* const TEAM_ALTERNATIVES = {
   'Italy 🇮🇹': ['Italy 🇮🇹', 'Northern Ireland ☘️', 'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'Bosnia and Herzegovina 🇧🇦'],
   'Ukraine 🇺🇦': ['Ukraine 🇺🇦', 'Sweden 🇸🇪', 'Poland 🇵🇱', 'Albania 🇦🇱'],
   'Turkey 🇹🇷': ['Turkey 🇹🇷', 'Romania 🇷🇴', 'Slovakia 🇸🇰', 'Kosovo 🇽🇰'],
   'Denmark 🇩🇰': ['Denmark 🇩🇰', 'North Macedonia 🇲🇰', 'Czechia 🇨🇿', 'Ireland 🇮🇪'],
   'Iraq 🇮🇶': ['Iraq 🇮🇶', 'Bolivia 🇧🇴', 'Suriname 🇸🇷'],
   'DR Congo 🇨🇩': ['DR Congo 🇨🇩', 'Jamaica 🇯🇲', 'New Caledonia 🇳🇨']
-};
+}; */
 
+/*
 // Helper to check if a team has alternatives (either is a key or is in any alternatives list)
 function hasAlternatives(teamName) {
   if (!teamName) return false;
@@ -50,6 +52,7 @@ function getAlternatives(teamName) {
   }
   return [teamName];
 }
+*/
 
 // Actual FIFA World Cup 2026 Groups (as drawn)
 function initializeGroups() {
@@ -59,13 +62,13 @@ function initializeGroups() {
         { name: 'Mexico 🇲🇽', pot: 1, position: 1 },
         { name: 'South Africa 🇿🇦', pot: 2, position: 2 },
         { name: 'South Korea 🇰🇷', pot: 3, position: 3 },
-        { name: 'Denmark 🇩🇰', pot: 4, position: 4 }
+        { name: 'Czechia 🇨🇿', pot: 4, position: 4 }
       ]
     },
     B: {
       teams: [
         { name: 'Canada 🇨🇦', pot: 1, position: 1 },
-        { name: 'Italy 🇮🇹', pot: 2, position: 2 },
+        { name: 'Bosnia and Herzegovina 🇧🇦', pot: 2, position: 2 },
         { name: 'Qatar 🇶🇦', pot: 3, position: 3 },
         { name: 'Switzerland 🇨🇭', pot: 4, position: 4 }
       ]
@@ -98,7 +101,7 @@ function initializeGroups() {
       teams: [
         { name: 'Netherlands 🇳🇱', pot: 1, position: 1 },
         { name: 'Japan 🇯🇵', pot: 2, position: 2 },
-        { name: 'Ukraine 🇺🇦', pot: 3, position: 3 },
+        { name: 'Sweden 🇸🇪', pot: 3, position: 3 },
         { name: 'Tunisia 🇹🇳', pot: 4, position: 4 }
       ]
     },
@@ -197,7 +200,7 @@ function formatRank(rank) {
 }
 
 // Helper function to get country flag gradient colors
-function getCountryGradient(teamString) {
+function _getCountryGradient(teamString) {
   const countryName = extractCountryName(teamString);
   
   // Map country names to their flag color gradients
@@ -206,8 +209,10 @@ function getCountryGradient(teamString) {
     'South Africa': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 0, 0.7), rgba(0, 0, 0, 0.7), rgba(0, 128, 0, 0.7))', // Red, Yellow, Black, Green
     'South Korea': 'linear-gradient(135deg, rgba(0, 0, 128, 0.7), rgba(255, 255, 255, 0.7), rgba(255, 0, 0, 0.7))', // Blue, White, Red
     'Denmark': 'linear-gradient(135deg, rgba(198, 12, 48, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
+    'Czechia': 'linear-gradient(135deg, rgba(17, 69, 126, 0.7), rgba(255, 255, 255, 0.7), rgba(214, 48, 49, 0.7))', // Blue, White, Red
     'Canada': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
     'Italy': 'linear-gradient(90deg, rgba(0, 146, 70, 0.7), rgba(255, 255, 255, 0.7), rgba(206, 43, 55, 0.7))', // Green, White, Red
+    'Bosnia and Herzegovina': 'linear-gradient(135deg, rgba(0, 61, 165, 0.7), rgba(255, 215, 0, 0.7))', // Blue and Yellow
     'Qatar': 'linear-gradient(135deg, rgba(138, 21, 56, 0.7), rgba(255, 255, 255, 0.7))', // Maroon and White
     'Switzerland': 'linear-gradient(135deg, rgba(255, 0, 0, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
     'Brazil': 'linear-gradient(135deg, rgba(0, 149, 69, 0.7), rgba(254, 223, 0, 0.7), rgba(0, 39, 118, 0.7))', // Green, Yellow, Blue
@@ -225,6 +230,7 @@ function getCountryGradient(teamString) {
     'Netherlands': 'linear-gradient(90deg, rgba(174, 28, 40, 0.7), rgba(255, 255, 255, 0.7), rgba(33, 70, 139, 0.7))', // Red, White, Blue
     'Japan': 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(188, 0, 45, 0.7))', // White and Red
     'Ukraine': 'linear-gradient(90deg, rgba(0, 87, 183, 0.7), rgba(255, 215, 0, 0.7))', // Blue and Yellow
+    'Sweden': 'linear-gradient(135deg, rgba(0, 87, 183, 0.7), rgba(255, 215, 0, 0.7))', // Blue and Yellow
     'Tunisia': 'linear-gradient(135deg, rgba(231, 0, 19, 0.7), rgba(255, 255, 255, 0.7))', // Red and White
     'Belgium': 'linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(237, 41, 57, 0.7), rgba(250, 224, 66, 0.7))', // Black, Red, Yellow
     'Egypt': 'linear-gradient(90deg, rgba(206, 17, 38, 0.7), rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0.7))', // Red, White, Black
@@ -308,7 +314,8 @@ function getCountryCode(teamString) {
     'South Korea': 'KOR',
     'Saudi Arabia': 'KSA',
     'Ivory Coast': 'CIV',
-    'Cape Verde': 'CPV'
+    'Cape Verde': 'CPV',
+    'Bosnia and Herzegovina': 'BIH'
   };
   
   // Check if it's a special case
@@ -345,6 +352,18 @@ function PredictorPage() {
       const saved = localStorage.getItem('predictorState');
       if (saved) {
         const parsed = JSON.parse(saved);
+        // If the saved state is from an older version (e.g. before qualifiers were confirmed),
+        // discard it so we don't show outdated placeholder/playoff teams.
+        if (parsed?.version !== PREDICTOR_STATE_VERSION) {
+          return {
+            groups: initializeGroups(),
+            thirdPlaceTeams: [],
+            selectedThirdPlaceGroups: new Set(),
+            knockoutBracket: null,
+            champion: null,
+            currentView: location.state?.view || 'groups'
+          };
+        }
         return {
           groups: parsed.groups || initializeGroups(),
           thirdPlaceTeams: parsed.thirdPlaceTeams || [],
@@ -378,9 +397,6 @@ function PredictorPage() {
   const [draggedTeam, setDraggedTeam] = useState(null);
   const [currentView, setCurrentView] = useState(initialView);
   const [groupWinnerProbs, setGroupWinnerProbs] = useState({});
-  const [openDropdown, setOpenDropdown] = useState(null); // Format: 'groupName-index'
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const [dropdownButtonRef, setDropdownButtonRef] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [touchedTeam, setTouchedTeam] = useState(null);
   const [selectedMatchInfo, setSelectedMatchInfo] = useState(null); // For match info modal
@@ -518,6 +534,7 @@ function PredictorPage() {
   // Save state to localStorage whenever it changes
   useEffect(() => {
     const stateToSave = {
+      version: PREDICTOR_STATE_VERSION,
       groups,
       thirdPlaceTeams,
       selectedThirdPlaceGroups: Array.from(selectedThirdPlaceGroups),
@@ -693,99 +710,6 @@ function PredictorPage() {
     setTouchedTeam(null);
     setTouchStartPos(null);
   };
-
-  // Handle team replacement from dropdown
-  const handleTeamReplacement = (groupName, teamIndex, newTeamName) => {
-    const newGroups = { ...groups };
-    const group = newGroups[groupName];
-    
-    // Preserve pot and position
-    const currentTeam = group.teams[teamIndex];
-    group.teams[teamIndex] = {
-      name: newTeamName,
-      pot: currentTeam.pot,
-      position: currentTeam.position
-    };
-
-    setGroups(newGroups);
-    
-    // Reset knockout bracket and related state when teams change
-    setThirdPlaceTeams([]);
-    setSelectedThirdPlaceGroups(new Set());
-    setKnockoutBracket(null);
-    setChampion(null);
-    
-    // Close dropdown after selection
-    setOpenDropdown(null);
-  };
-
-  // Toggle dropdown
-  const toggleDropdown = (groupName, teamIndex, e) => {
-    e.stopPropagation();
-    const dropdownKey = `${groupName}-${teamIndex}`;
-    
-    if (openDropdown === dropdownKey) {
-      setOpenDropdown(null);
-      setDropdownButtonRef(null);
-    } else {
-      // Calculate position for absolute dropdown - use document coordinates
-      // Add scroll offsets so dropdown stays with the button when scrolling
-      const button = e.currentTarget;
-      setDropdownButtonRef(button);
-      const rect = button.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 2,
-        left: rect.left + window.scrollX
-      });
-      setOpenDropdown(dropdownKey);
-    }
-  };
-
-  // Update dropdown position on scroll
-  useEffect(() => {
-    if (!openDropdown || !dropdownButtonRef) return;
-
-    const updatePosition = () => {
-      if (!dropdownButtonRef) return;
-      const rect = dropdownButtonRef.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 2,
-        left: rect.left + window.scrollX
-      });
-    };
-
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [openDropdown, dropdownButtonRef]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openDropdown && !event.target.closest('.team-dropdown-container') && !event.target.closest('.team-dropdown-menu')) {
-        setOpenDropdown(null);
-      }
-    };
-
-    const handleTouchOutside = (event) => {
-      if (openDropdown && !event.target.closest('.team-dropdown-container') && !event.target.closest('.team-dropdown-menu')) {
-        setOpenDropdown(null);
-      }
-    };
-
-    if (openDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleTouchOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('touchstart', handleTouchOutside);
-      };
-    }
-  }, [openDropdown]);
 
   // Advance teams to third place ranking
   const advanceToThirdPlace = () => {
@@ -1176,7 +1100,7 @@ function PredictorPage() {
   };
 
   // Show match info for a group
-  const handleGroupInfoClick = (groupName) => {
+  const _handleGroupInfoClick = (groupName) => {
     const group = groups[groupName];
     const teamNames = group.teams.map(t => t.name);
     const matchOrder = [
@@ -1410,8 +1334,6 @@ function PredictorPage() {
                   <div className="group-teams">
                     {groups[groupName].teams.map((team, index) => {
                       const teamProb = groupWinnerProbs[groupName]?.[team.name];
-                      const teamHasAlternatives = hasAlternatives(team.name);
-                      const teamAlternatives = teamHasAlternatives ? getAlternatives(team.name) : [];
                       // Position-based border colors: 1-2 = green, 3 = yellow, 4 = blue
                       let positionGradient;
                       if (index === 0 || index === 1) {
@@ -1468,48 +1390,6 @@ function PredictorPage() {
                           </div>
                           <span className="position-number">{index + 1}.</span>
                           <span className="team-name">{team.name}</span>
-                          {teamHasAlternatives && currentView === 'groups' && (
-                            <div className="team-dropdown-container" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                ref={(el) => {
-                                  if (openDropdown === `${groupName}-${index}` && el) {
-                                    setDropdownButtonRef(el);
-                                  }
-                                }}
-                                className="team-dropdown-toggle"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleDropdown(groupName, index, e);
-                                }}
-                                title="Select alternative team"
-                              >
-                                <span className="dropdown-arrow">▼</span>
-                              </button>
-                              {openDropdown === `${groupName}-${index}` && ReactDOM.createPortal(
-                                <div 
-                                  className="team-dropdown-menu"
-                                  style={{
-                                    top: `${dropdownPosition.top}px`,
-                                    left: `${dropdownPosition.left}px`
-                                  }}
-                                >
-                                  {teamAlternatives.map((altTeam) => (
-                                    <div
-                                      key={altTeam}
-                                      className={`team-dropdown-item ${team.name === altTeam ? 'selected' : ''}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleTeamReplacement(groupName, index, altTeam);
-                                      }}
-                                    >
-                                      {altTeam}
-                                    </div>
-                                  ))}
-                                </div>,
-                                document.body
-                              )}
-                            </div>
-                          )}
                           {teamProb ? (
                             <span className="group-winner-prob">
                               {(teamProb.probability * 100).toFixed(1)}%

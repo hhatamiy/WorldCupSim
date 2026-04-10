@@ -8,9 +8,9 @@ const TEAM_NAME_MAP = {
   'Mexico': 'Mexico 🇲🇽',
   'South Africa': 'South Africa 🇿🇦',
   'South Korea': 'South Korea 🇰🇷',
-  'Denmark': 'Denmark 🇩🇰',
+  'Czechia': 'Czechia 🇨🇿',
   'Canada': 'Canada 🇨🇦',
-  'Italy': 'Italy 🇮🇹',
+  'Bosnia and Herzegovina': 'Bosnia and Herzegovina 🇧🇦',
   'Qatar': 'Qatar 🇶🇦',
   'Switzerland': 'Switzerland 🇨🇭',
   'Brazil': 'Brazil 🇧🇷',
@@ -29,7 +29,7 @@ const TEAM_NAME_MAP = {
   'Ecuador': 'Ecuador 🇪🇨',
   'Netherlands': 'Netherlands 🇳🇱',
   'Japan': 'Japan 🇯🇵',
-  'Ukraine': 'Ukraine 🇺🇦',
+  'Sweden': 'Sweden 🇸🇪',
   'Tunisia': 'Tunisia 🇹🇳',
   'Belgium': 'Belgium 🇧🇪',
   'Egypt': 'Egypt 🇪🇬',
@@ -87,7 +87,8 @@ function getCountryCode(teamString) {
     'South Korea': 'KOR',
     'Saudi Arabia': 'KSA',
     'Ivory Coast': 'CIV',
-    'Cape Verde': 'CPV'
+    'Cape Verde': 'CPV',
+    'Bosnia and Herzegovina': 'BIH'
   };
   
   // Check if it's a special case
@@ -117,6 +118,20 @@ function getCountryCode(teamString) {
 // Helper to convert simple team name to full name with emoji
 function getFullTeamName(simpleName) {
   if (!simpleName) return '';
+  
+  // Replace placeholder playoff/path winners with confirmed qualified teams
+  const QUALIFIED_PLACEHOLDER_MAP = {
+    'UEFA Path A winner': 'Bosnia and Herzegovina 🇧🇦',
+    'UEFA Path B winner': 'Sweden 🇸🇪',
+    'UEFA Path C winner': 'Turkey 🇹🇷',
+    'UEFA Path D winner': 'Czechia 🇨🇿',
+    'IC Path 1 winner': 'DR Congo 🇨🇩',
+    'IC Path 2 winner': 'Iraq 🇮🇶',
+  };
+  if (QUALIFIED_PLACEHOLDER_MAP[simpleName]) {
+    return QUALIFIED_PLACEHOLDER_MAP[simpleName];
+  }
+
   // Handle placeholder teams with appropriate emojis
   if (simpleName.includes('UEFA Path')) {
     return `🇪🇺 ${simpleName}`;

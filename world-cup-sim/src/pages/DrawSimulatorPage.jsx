@@ -5,10 +5,10 @@ import './DrawSimulatorPage.css';
 
 // List of qualified teams (you can expand this)
 const QUALIFIED_TEAMS = [
-  'Brazil', 'Argentina', 'France', 'Spain', 'Germany', 'Italy', 'England', 'Netherlands',
+  'Brazil', 'Argentina', 'France', 'Spain', 'Germany', 'Bosnia and Herzegovina', 'England', 'Netherlands',
   'Portugal', 'Belgium', 'Uruguay', 'Croatia', 'Mexico', 'USA', 'Japan', 'South Korea',
   'Australia', 'Morocco', 'Senegal', 'Tunisia', 'Canada', 'Ecuador', 'Qatar', 'Saudi Arabia',
-  'Iran', 'Cameroon', 'Ghana', 'Poland', 'Switzerland', 'Denmark', 'Serbia', 'Wales'
+  'Iran', 'Cameroon', 'Ghana', 'Poland', 'Switzerland', 'Czechia', 'Serbia', 'Wales'
 ];
 
 function DrawSimulatorPage() {
