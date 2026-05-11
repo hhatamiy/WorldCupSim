@@ -1,12 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import PredictionExportVisual from '../components/PredictionExportVisual';
 import { generateRoundOf32Matchups } from '../utils/knockoutAlgorithm';
+import { calculateMatchupTop } from '../utils/bracketLayout';
+import { extractCountryName, extractFlag, getFullCountryName, getCountryCode } from '../utils/predictionLabels';
+import { buildExportBasename } from '../utils/predictionExportFilename';
+import { downloadPredictionCsv } from '../utils/predictionExportCsv';
+import { downloadPredictionHtml } from '../utils/predictionExportHtml';
+import {
+  downloadPdfFromElement,
+  downloadPngFromElement,
+  downloadJpgFromElement
+} from '../utils/predictionExportImagePdf';
 import api from '../api/api';
 import { getGroupMatchInfo, getKnockoutMatchInfo, getKnockoutMatchInfoById } from '../data/matchSchedule';
 import './PredictorPage.css';
 
 const PREDICTOR_STATE_VERSION = 2;
+const EXPORT_DISPLAY_NAME_KEY = 'predictorExportDisplayName';
+
+function flushDoubleAnimationFrame() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
 
 // Team alternatives mapping for unqualified teams
 /* const TEAM_ALTERNATIVES = {
@@ -158,25 +178,6 @@ function initializeGroups() {
   return groups;
 }
 
-// Helper function to extract country name (remove emoji)
-function extractCountryName(teamString) {
-  if (!teamString) return '';
-  let cleaned = teamString
-    .replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '')
-    .replace(/🏴[󠁁-󠁿]*/gu, '')
-    .trim();
-  return cleaned;
-}
-
-// Helper function to extract flag emoji from team string
-function extractFlag(teamString) {
-  if (!teamString) return '';
-  
-  // Extract flag emoji (country flags or special flags like Scotland)
-  const flagMatch = teamString.match(/[\u{1F1E6}-\u{1F1FF}]{2}|🏴[󠁁-󠁿]*/gu);
-  return flagMatch ? flagMatch[0] : '';
-}
-
 // Helper function to format rank with proper ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
 function formatRank(rank) {
   if (!rank || rank === null || rank === undefined) return '';
@@ -262,86 +263,6 @@ function _getCountryGradient(teamString) {
   return flagColors[countryName] || 'linear-gradient(135deg, rgba(100, 100, 100, 0.5), rgba(150, 150, 150, 0.5))';
 }
 
-// Helper function to get full country name with flag (for final match)
-function getFullCountryName(teamString) {
-  if (!teamString) return '';
-  // Return as-is (already includes flag emoji)
-  return teamString;
-}
-
-// Calculate the top position for a matchup based on its round and index
-// Each matchup should be positioned at the average Y position of its two parent matchups
-function calculateMatchupTop(roundIndex, matchupIndex, totalMatchupsInRound, containerHeight = 1200) {
-  if (roundIndex === 0) {
-    // Round of 32: evenly space all matchups from top with more padding
-    // Use a larger container height and add padding at top
-    const topPadding = 20;
-    const availableHeight = containerHeight - (topPadding * 2);
-    const spacing = availableHeight / (totalMatchupsInRound - 1);
-    return topPadding + (spacing * matchupIndex);
-  } else {
-    // For subsequent rounds, calculate based on parent matchups from previous round
-    // Recursively get the actual positions of the parent matchups to ensure exact alignment
-    const parentRoundMatchups = totalMatchupsInRound * 2; // Previous round has 2x matchups
-    const parentRoundIndex = roundIndex - 1;
-    
-    // This matchup comes from parent matchups at indices (2*matchupIndex) and (2*matchupIndex + 1)
-    const parent1Top = calculateMatchupTop(parentRoundIndex, 2 * matchupIndex, parentRoundMatchups, containerHeight);
-    const parent2Top = calculateMatchupTop(parentRoundIndex, 2 * matchupIndex + 1, parentRoundMatchups, containerHeight);
-    
-    // Return the average - this positions the matchup exactly between its two parents
-    return (parent1Top + parent2Top) / 2;
-  }
-}
-
-// Helper function to get 3-letter country code for UI display (keeps flag emoji)
-function getCountryCode(teamString) {
-  if (!teamString) return '';
-  
-  // Extract flag emoji (country flags or special flags like Scotland)
-  const flagMatch = teamString.match(/[\u{1F1E6}-\u{1F1FF}]{2}|🏴[󠁁-󠁿]*/gu);
-  const flag = flagMatch ? flagMatch[0] : '';
-  
-  // Extract country name
-  const countryName = extractCountryName(teamString);
-  
-  // Special cases for multi-word country names
-  const specialCases = {
-    'United States': 'USA',
-    'DR Congo': 'DRC',
-    'New Zealand': 'NZL',
-    'South Africa': 'RSA',
-    'South Korea': 'KOR',
-    'Saudi Arabia': 'KSA',
-    'Ivory Coast': 'CIV',
-    'Cape Verde': 'CPV',
-    'Bosnia and Herzegovina': 'BIH'
-  };
-  
-  // Check if it's a special case
-  if (specialCases[countryName]) {
-    return flag ? `${flag} ${specialCases[countryName]}` : specialCases[countryName];
-  }
-  
-  // For other multi-word names, use first letter of each word (up to 3 words)
-  const words = countryName.split(/\s+/);
-  let code;
-  if (words.length > 1) {
-    // Multi-word: use first letter of each word
-    code = words.slice(0, 3).map(w => w[0]).join('').toUpperCase();
-    // Pad to 3 characters if needed
-    if (code.length < 3 && words[0].length > 1) {
-      code = (code + words[0].substring(1, 4 - code.length)).toUpperCase().substring(0, 3);
-    }
-  } else {
-    // Single word: use first 3 letters
-    code = countryName.substring(0, 3).toUpperCase();
-  }
-  
-  // Return flag + code
-  return flag ? `${flag} ${code}` : code;
-}
-
 function PredictorPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -404,6 +325,43 @@ function PredictorPage() {
   const [bettingOdds, setBettingOdds] = useState(null); // Store fetched odds data
   const [oddsLoading, setOddsLoading] = useState(false); // Loading state for odds
   const [oddsError, setOddsError] = useState(null); // Error state for odds
+
+  const exportVisualRef = useRef(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportStatus, setExportStatus] = useState(null);
+  const [exportStamp, setExportStamp] = useState('');
+  const [exportDisplayName, setExportDisplayName] = useState(() => {
+    try {
+      return localStorage.getItem(EXPORT_DISPLAY_NAME_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const finalMatchForExport = knockoutBracket?.final?.[0];
+  const thirdPlaceMatchForExport = knockoutBracket?.thirdPlacePlayoff?.[0];
+
+  const isFinalPredictionComplete =
+    Boolean(champion) &&
+    Boolean(finalMatchForExport?.winner) &&
+    finalMatchForExport.winner === champion;
+
+  const isThirdPlacePlayoffPredicted =
+    Boolean(thirdPlaceMatchForExport?.team1) &&
+    Boolean(thirdPlaceMatchForExport?.team2) &&
+    Boolean(thirdPlaceMatchForExport?.winner);
+
+  const isExportReady = isFinalPredictionComplete && isThirdPlacePlayoffPredicted;
+
+  /** Show export row once the final / champion is settled; button stays disabled until 3rd place is picked */
+  const showExportControls = isFinalPredictionComplete;
+
+  const exportBlockedOnlyByThirdPlace =
+    isFinalPredictionComplete &&
+    Boolean(thirdPlaceMatchForExport?.team1) &&
+    Boolean(thirdPlaceMatchForExport?.team2) &&
+    !thirdPlaceMatchForExport?.winner;
 
   // Timezone preference state - load from localStorage or default to false (show match timezone)
   const [useLocalTimezone, setUseLocalTimezone] = useState(() => {
@@ -1270,6 +1228,96 @@ function PredictorPage() {
     }
   }, [activeTab, selectedMatchInfo]);
 
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const onDocMouseDown = (e) => {
+      if (!e.target.closest('.export-dropdown')) {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [exportMenuOpen]);
+
+  const persistExportDisplayName = (value) => {
+    setExportDisplayName(value);
+    try {
+      localStorage.setItem(EXPORT_DISPLAY_NAME_KEY, value);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleExport = async (kind) => {
+    if (!isExportReady) {
+      setExportStatus({
+        type: 'error',
+        text: exportBlockedOnlyByThirdPlace
+          ? 'Pick the third-place playoff winner before exporting.'
+          : 'Complete your knockout predictions before exporting.'
+      });
+      return;
+    }
+
+    const generatedAt = new Date().toLocaleString();
+    const basename = buildExportBasename(exportDisplayName);
+    const payload = {
+      groups,
+      thirdPlaceTeams,
+      selectedThirdPlaceGroups,
+      knockoutBracket,
+      champion,
+      generatedAt
+    };
+
+    const ext =
+      kind === 'csv'
+        ? 'csv'
+        : kind === 'html'
+          ? 'html'
+          : kind === 'pdf'
+            ? 'pdf'
+            : kind === 'png'
+              ? 'png'
+              : 'jpg';
+
+    setExportBusy(true);
+    setExportStatus(null);
+    try {
+      if (kind === 'csv') {
+        downloadPredictionCsv(payload, basename);
+      } else if (kind === 'html') {
+        downloadPredictionHtml(payload, basename);
+      } else {
+        setExportStamp(generatedAt);
+        await flushDoubleAnimationFrame();
+        const el = exportVisualRef.current;
+        if (!el) {
+          throw new Error('Export layout is not ready.');
+        }
+        if (kind === 'pdf') {
+          await downloadPdfFromElement(el, `${basename}.pdf`);
+        } else if (kind === 'png') {
+          await downloadPngFromElement(el, `${basename}.png`);
+        } else if (kind === 'jpg') {
+          await downloadJpgFromElement(el, `${basename}.jpg`);
+        }
+      }
+      setExportStatus({
+        type: 'ok',
+        text: `Downloaded ${basename}.${ext}`
+      });
+    } catch (err) {
+      console.error(err);
+      setExportStatus({
+        type: 'error',
+        text: err?.message || 'Export failed. Try again.'
+      });
+    } finally {
+      setExportBusy(false);
+      setExportMenuOpen(false);
+    }
+  };
 
   return (
     <div className="predictor-container">
@@ -1530,6 +1578,89 @@ function PredictorPage() {
 
               {/* Final (Center) */}
               <div className="bracket-center">
+                {showExportControls && (
+                  <div className="bracket-export-block">
+                    {exportBlockedOnlyByThirdPlace && (
+                      <p className="export-prereq-hint" id="export-prereq-hint">
+                        Pick the <strong>3rd place</strong> playoff winner below to enable export.
+                      </p>
+                    )}
+                    {showExportControls && !isExportReady && !exportBlockedOnlyByThirdPlace && (
+                      <p className="export-prereq-hint" id="export-prereq-hint-generic">
+                        Complete all knockout picks (including third place) to enable export.
+                      </p>
+                    )}
+                    <div className={`export-dropdown export-dropdown--bracket ${exportMenuOpen ? 'open' : ''}`}>
+                      <button
+                        type="button"
+                        className="export-btn"
+                        disabled={!isExportReady || exportBusy}
+                        title={
+                          isExportReady
+                            ? 'Export your prediction'
+                            : exportBlockedOnlyByThirdPlace
+                              ? 'Pick the third-place playoff winner first'
+                              : 'Complete knockout predictions to export'
+                        }
+                        aria-expanded={exportMenuOpen}
+                        aria-haspopup="true"
+                        aria-describedby={
+                          exportBlockedOnlyByThirdPlace
+                            ? 'export-prereq-hint'
+                            : showExportControls && !isExportReady
+                              ? 'export-prereq-hint-generic'
+                              : undefined
+                        }
+                        onClick={() => {
+                          if (exportBusy || !isExportReady) return;
+                          setExportMenuOpen((o) => !o);
+                        }}
+                      >
+                        {exportBusy ? 'Exporting…' : 'Export'}
+                      </button>
+                      {exportMenuOpen && isExportReady && !exportBusy && (
+                        <div className="export-menu" role="menu">
+                          <label className="export-name-label">
+                            <span>Name for file (optional)</span>
+                            <input
+                              type="text"
+                              className="export-name-input"
+                              value={exportDisplayName}
+                              onChange={(e) => persistExportDisplayName(e.target.value)}
+                              placeholder="e.g. hossein"
+                              maxLength={48}
+                              autoComplete="nickname"
+                            />
+                          </label>
+                          <button type="button" className="export-menu-item" role="menuitem" onClick={() => handleExport('pdf')}>
+                            PDF
+                          </button>
+                          <button type="button" className="export-menu-item" role="menuitem" onClick={() => handleExport('png')}>
+                            PNG
+                          </button>
+                          <button type="button" className="export-menu-item" role="menuitem" onClick={() => handleExport('jpg')}>
+                            JPG
+                          </button>
+                          <button type="button" className="export-menu-item" role="menuitem" onClick={() => handleExport('csv')}>
+                            CSV
+                          </button>
+                          <button type="button" className="export-menu-item" role="menuitem" onClick={() => handleExport('html')}>
+                            HTML
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {exportStatus && (
+                      <p
+                        className={`export-status export-status-bracket export-status-${exportStatus.type}`}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {exportStatus.text}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="champion-announcement-wrapper" style={{ minHeight: champion ? 'auto' : '0px', marginBottom: champion ? '15px' : '0px' }}>
                   {champion && (
                     <div className="champion-announcement">
@@ -2042,6 +2173,17 @@ function PredictorPage() {
             </div>
           </div>
         </div>
+      )}
+      {isExportReady && knockoutBracket && (
+        <PredictionExportVisual
+          ref={exportVisualRef}
+          groups={groups}
+          knockoutBracket={knockoutBracket}
+          champion={champion}
+          selectedThirdPlaceGroups={selectedThirdPlaceGroups}
+          thirdPlaceTeams={thirdPlaceTeams}
+          generatedAt={exportStamp || 'World Cup 2026 prediction'}
+        />
       )}
     </div>
   );

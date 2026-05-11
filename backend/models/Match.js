@@ -40,6 +40,7 @@ const MatchSchema = new mongoose.Schema(
       type: Number, // For group stage matches (1-6)
     },
 
+ 
     result: {
       homeScore: { type: Number, default: null },
       awayScore: { type: Number, default: null },
